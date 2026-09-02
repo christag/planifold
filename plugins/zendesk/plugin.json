@@ -1,0 +1,100 @@
+{
+  "id": "zendesk",
+  "name": "Zendesk",
+  "version": "1.0.0",
+  "description": "Tickets, users and organizations in Zendesk Support.",
+  "category": "IT & support",
+  "icon": "🎫",
+  "website": "https://developer.zendesk.com/api-reference/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "tickets",
+      "label": "tickets",
+      "singular": "ticket",
+      "description": "Support tickets and the conversation in them.",
+      "timeField": "updated_at",
+      "fields": [
+        { "id": "subject", "label": "subject", "type": "string" },
+        { "id": "description", "label": "description", "type": "text", "description": "The first message in the ticket." },
+        { "id": "status", "label": "status", "type": "enum", "values": ["New", "Open", "Pending", "On-hold", "Solved", "Closed"] },
+        { "id": "priority", "label": "priority", "type": "enum", "values": ["Urgent", "High", "Normal", "Low"] },
+        { "id": "requester", "label": "requester", "type": "person", "description": "The customer the ticket is for." },
+        { "id": "assignee", "label": "assignee", "type": "person" },
+        { "id": "group", "label": "group", "type": "string", "description": "The agent group the ticket is routed to." },
+        { "id": "tag", "label": "tag", "type": "string", "description": "Ticket tags, like billing or vip." },
+        { "id": "updated_at", "label": "last updated", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "users",
+      "label": "users",
+      "singular": "user",
+      "description": "End users, agents and admins.",
+      "timeField": "created_at",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "role", "label": "role", "type": "enum", "values": ["End user", "Agent", "Admin"] },
+        { "id": "organization", "label": "organization", "type": "string" },
+        { "id": "tag", "label": "tag", "type": "string" },
+        { "id": "suspended", "label": "suspended", "type": "boolean" },
+        { "id": "created_at", "label": "created", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "organizations",
+      "label": "organizations",
+      "singular": "organization",
+      "description": "Companies that end users belong to, usually matched by email domain.",
+      "timeField": "created_at",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "domain", "label": "email domain", "type": "string" },
+        { "id": "tag", "label": "tag", "type": "string", "description": "Organization tags are copied onto new tickets from its users." },
+        { "id": "group", "label": "default group", "type": "string" },
+        { "id": "created_at", "label": "created", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_ticket",
+      "label": "a ticket",
+      "pattern": "create",
+      "description": "One new ticket per record, opened on behalf of the requester.",
+      "params": [
+        { "id": "requester", "label": "for", "type": "ref-or-text", "placeholder": "requester's email", "refLabel": "each person in {piece}", "description": "The customer the ticket is for. They get the usual ticket emails." },
+        { "id": "subject_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true },
+        { "id": "group", "label": "in the group", "type": "text", "placeholder": "group name", "optional": true },
+        { "id": "priority", "label": "at priority", "type": "enum", "values": ["Urgent", "High", "Normal", "Low"], "optional": true },
+        { "id": "tags", "label": "tagged", "type": "texts", "placeholder": "tag", "optional": true }
+      ]
+    },
+    {
+      "id": "add_comment",
+      "label": "a comment on each ticket",
+      "verb": "Post",
+      "description": "Reply on the tickets in the source. Public replies go to the requester by email; internal notes stay with agents.",
+      "params": [
+        { "id": "audience", "label": "visible to", "type": "enum", "values": ["agents only (internal note)", "the requester too (public reply)"] }
+      ]
+    },
+    {
+      "id": "update_status",
+      "label": "a status change",
+      "verb": "Apply",
+      "description": "Change the status of the tickets in the source. Solved tickets close on their own after a few days; nothing here closes them outright.",
+      "params": [
+        { "id": "status", "label": "to", "type": "enum", "values": ["Open", "Pending", "On-hold", "Solved"] },
+        { "id": "assignee", "label": "and assign to", "type": "text", "placeholder": "an agent or group", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Zendesk is reached through the Support REST API on the company's subdomain (yourcompany.zendesk.com/api/v2) with an API token for an agent account or an OAuth app; every action shows in the ticket audit as that agent, so use a dedicated one. Public comments email the requester immediately, so default to internal notes unless the plan says the customer should see it. Set tickets to Solved at most and never mark them Closed, because closed tickets cannot be reopened or edited.",
+  "setup": {
+    "notes": "Ask the Zendesk admin for an agent seat for the automation and an API token from Admin Center. Agent seats are licensed, so raise this early.",
+    "docsUrl": "https://developer.zendesk.com/api-reference/ticketing/introduction/"
+  }
+}

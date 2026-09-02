@@ -1,0 +1,103 @@
+{
+  "id": "sharepoint",
+  "name": "SharePoint & OneDrive",
+  "version": "1.0.0",
+  "description": "Files, folders and list items in SharePoint sites and OneDrive.",
+  "category": "Spreadsheets & files",
+  "icon": "🗂️",
+  "website": "https://learn.microsoft.com/en-us/sharepoint/dev/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "files",
+      "label": "files",
+      "singular": "file",
+      "description": "Files in a document library or OneDrive folder, including Office documents and PDFs.",
+      "timeField": "modified",
+      "qualifier": { "label": "in the folder", "placeholder": "site › library › folder" },
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "kind", "label": "kind", "type": "enum", "values": ["Word document", "Excel workbook", "PowerPoint deck", "PDF", "Image", "Other"] },
+        { "id": "path", "label": "folder path", "type": "string", "description": "Where it sits inside the library, like Contracts/2026." },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "modified_by", "label": "last modified by", "type": "person" },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "created_by", "label": "created by", "type": "person" },
+        { "id": "size_kb", "label": "size in KB", "type": "number" },
+        { "id": "link", "label": "link", "type": "url" }
+      ]
+    },
+    {
+      "id": "folders",
+      "label": "folders",
+      "singular": "folder",
+      "description": "Folders inside a document library or OneDrive.",
+      "timeField": "modified",
+      "qualifier": { "label": "in the library", "placeholder": "site › library" },
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "path", "label": "folder path", "type": "string" },
+        { "id": "item_count", "label": "number of items", "type": "number" },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "created_by", "label": "created by", "type": "person" }
+      ]
+    },
+    {
+      "id": "list_items",
+      "label": "list items",
+      "singular": "list item",
+      "description": "Rows in a SharePoint list, like a request tracker or asset register. Filter by column name.",
+      "timeField": "modified",
+      "allowCustomFields": true,
+      "qualifier": { "label": "in the list", "placeholder": "site › list" },
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "created_by", "label": "created by", "type": "person" },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "modified_by", "label": "last modified by", "type": "person" },
+        { "id": "attachment", "label": "attachment", "type": "attachment" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "save_file",
+      "label": "a file",
+      "verb": "Save",
+      "description": "Upload into a library or OneDrive folder.",
+      "params": [
+        { "id": "folder", "label": "in the folder", "type": "text", "placeholder": "site › library › folder" },
+        { "id": "name", "label": "named", "type": "text", "placeholder": "file name", "optional": true },
+        { "id": "format", "label": "saved as", "type": "enum", "values": ["Word document", "Excel workbook", "PDF", "CSV", "plain text"], "optional": true },
+        { "id": "on_conflict", "label": "", "type": "enum", "placeholder": "if the name is taken", "values": ["keeping both if the name is taken", "replacing any file with the same name"], "optional": true }
+      ]
+    },
+    {
+      "id": "create_list_item",
+      "label": "a list item",
+      "pattern": "create",
+      "description": "One new row per record. Columns are matched by name.",
+      "params": [
+        { "id": "list", "label": "in the list", "type": "text", "placeholder": "site › list" },
+        { "id": "title_from", "label": "titled after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "create_folder",
+      "label": "a folder",
+      "pattern": "create",
+      "description": "One new folder per record, for example a folder per client or per project.",
+      "params": [
+        { "id": "parent", "label": "inside", "type": "text", "placeholder": "site › library › folder" },
+        { "id": "name_from", "label": "named after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "SharePoint and OneDrive are reached through the Microsoft Graph API, normally as an Entra ID app registration with Sites.Selected permission granted site by site, so the automation cannot roam the whole tenant. Name the site and library exactly; the same file name can exist in several libraries, and site URLs are easy to confuse with display names. Write into a dedicated folder and never overwrite files people edit in place.",
+  "setup": {
+    "notes": "Ask the SharePoint or Microsoft 365 administrator to grant the app access to each site named in the plan. The site owner can confirm library and list names.",
+    "docsUrl": "https://learn.microsoft.com/en-us/graph/api/resources/sharepoint"
+  }
+}

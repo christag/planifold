@@ -1,0 +1,98 @@
+{
+  "id": "google-drive",
+  "name": "Google Drive",
+  "version": "1.0.0",
+  "description": "Files, folders and shared drives in Google Drive.",
+  "category": "Spreadsheets & files",
+  "icon": "📁",
+  "website": "https://developers.google.com/workspace/drive/api",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "files",
+      "label": "files",
+      "singular": "file",
+      "description": "Files in My Drive and shared drives. Docs, Sheets and Slides count as files.",
+      "timeField": "modified",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "kind", "label": "kind", "type": "enum", "values": ["Google Doc", "Google Sheet", "Google Slides", "Google Form", "PDF", "Image", "Video", "Other"] },
+        { "id": "folder", "label": "folder", "type": "string", "description": "The folder it sits in." },
+        { "id": "shared_drive", "label": "shared drive", "type": "string", "description": "The shared drive it lives in. Blank means My Drive." },
+        { "id": "owner", "label": "owner", "type": "person", "description": "Files in a shared drive are owned by the drive, not a person." },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "modified_by", "label": "last modified by", "type": "person" },
+        { "id": "shared_with", "label": "shared with", "type": "person", "description": "A person the file is shared with." },
+        { "id": "link", "label": "link", "type": "url" }
+      ]
+    },
+    {
+      "id": "folders",
+      "label": "folders",
+      "singular": "folder",
+      "description": "Folders in My Drive and shared drives.",
+      "timeField": "modified",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "parent", "label": "parent folder", "type": "string" },
+        { "id": "shared_drive", "label": "shared drive", "type": "string", "description": "Blank means My Drive." },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "link", "label": "link", "type": "url" }
+      ]
+    },
+    {
+      "id": "shared_drives",
+      "label": "shared drives",
+      "singular": "shared drive",
+      "description": "Shared drives the account can see.",
+      "timeField": "created",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "member", "label": "member", "type": "person", "description": "A person with access to the drive." },
+        { "id": "hidden", "label": "hidden", "type": "boolean", "description": "Hidden from the account's drive list." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "save_file",
+      "label": "a file",
+      "verb": "Save",
+      "description": "Upload into a folder. Google formats are created as native Docs or Sheets.",
+      "params": [
+        { "id": "folder", "label": "in the folder", "type": "text", "placeholder": "folder name or path" },
+        { "id": "name", "label": "named", "type": "text", "placeholder": "file name", "optional": true },
+        { "id": "format", "label": "saved as", "type": "enum", "values": ["Google Doc", "Google Sheet", "PDF", "CSV", "plain text"], "optional": true }
+      ]
+    },
+    {
+      "id": "create_folder",
+      "label": "a folder",
+      "pattern": "create",
+      "description": "One new folder per record, for example a folder per client or per project.",
+      "params": [
+        { "id": "parent", "label": "inside", "type": "text", "placeholder": "parent folder" },
+        { "id": "name_from", "label": "named after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "share",
+      "label": "a sharing change",
+      "verb": "Apply",
+      "description": "Share the files or folders in the source. The source must be Google Drive files or folders.",
+      "params": [
+        { "id": "with", "label": "giving", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}" },
+        { "id": "role", "label": "", "type": "enum", "values": ["viewer", "commenter", "editor"], "suffix": "access" },
+        { "id": "notify", "label": "", "type": "enum", "placeholder": "with or without an email", "values": ["and emailing them about it", "quietly, with no email"], "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Drive is reached through the Google Drive API, normally as a service account that has been shared into the folders or shared drives it needs, or with domain-wide delegation to act as a named user. A file uploaded by a service account into My Drive belongs to that account and counts against its storage, so put automation output in a shared drive where the team can find it. Prefer creating new files in a dedicated folder over editing or deleting what people already have.",
+  "setup": {
+    "notes": "Ask the Google Workspace administrator for a service account, then share the folders or shared drives named in the plan with its address.",
+    "docsUrl": "https://developers.google.com/workspace/drive/api/guides/about-sdk"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "id": "jira",
+  "name": "Jira",
+  "version": "1.0.0",
+  "description": "Issues, projects, sprints and comments in Jira Cloud.",
+  "category": "Work management",
+  "icon": "🔷",
+  "website": "https://developer.atlassian.com/cloud/jira/platform/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "issues",
+      "label": "issues",
+      "singular": "issue",
+      "description": "Tickets in a project: bugs, stories, tasks, epics.",
+      "timeField": "updated",
+      "fields": [
+        { "id": "key", "label": "key", "type": "string", "description": "The issue key, like PROJ-123." },
+        { "id": "summary", "label": "summary", "type": "string", "description": "The one-line title of the issue." },
+        { "id": "project", "label": "project", "type": "string", "description": "Project name or key." },
+        { "id": "issue_type", "label": "issue type", "type": "enum", "values": ["Bug", "Task", "Story", "Epic", "Subtask"] },
+        { "id": "status", "label": "status", "type": "enum", "values": ["To Do", "In Progress", "In Review", "Done"], "description": "Statuses come from the project's workflow; these are the defaults." },
+        { "id": "priority", "label": "priority", "type": "enum", "values": ["Highest", "High", "Medium", "Low", "Lowest"] },
+        { "id": "assignee", "label": "assignee", "type": "person" },
+        { "id": "sprint", "label": "sprint", "type": "string", "description": "The sprint the issue is in, by name." },
+        { "id": "updated", "label": "last updated", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "projects",
+      "label": "projects",
+      "singular": "project",
+      "description": "The projects on the site.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "key", "label": "key", "type": "string", "description": "The short prefix used in issue keys, like PROJ." },
+        { "id": "lead", "label": "project lead", "type": "person" },
+        { "id": "project_type", "label": "project type", "type": "enum", "values": ["Software", "Service management", "Business"] }
+      ]
+    },
+    {
+      "id": "sprints",
+      "label": "sprints",
+      "singular": "sprint",
+      "description": "Sprints on a Scrum board.",
+      "timeField": "end_date",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "board", "label": "board", "type": "string" },
+        { "id": "state", "label": "state", "type": "enum", "values": ["Future", "Active", "Closed"] },
+        { "id": "goal", "label": "sprint goal", "type": "text" },
+        { "id": "start_date", "label": "start date", "type": "date" },
+        { "id": "end_date", "label": "end date", "type": "date" }
+      ]
+    },
+    {
+      "id": "comments",
+      "label": "comments",
+      "singular": "comment",
+      "description": "Comments posted on issues.",
+      "timeField": "created",
+      "fields": [
+        { "id": "issue", "label": "issue key", "type": "string" },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "body", "label": "text", "type": "text" },
+        { "id": "created", "label": "posted", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_issue",
+      "label": "an issue",
+      "pattern": "create",
+      "description": "One new issue per record.",
+      "params": [
+        { "id": "project", "label": "in the project", "type": "text", "placeholder": "project key or name" },
+        { "id": "issue_type", "label": "of type", "type": "enum", "values": ["Bug", "Task", "Story", "Epic"], "optional": true },
+        { "id": "summary_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true, "description": "The field that becomes the issue summary." },
+        { "id": "assignee", "label": "assigned to", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    },
+    {
+      "id": "add_comment",
+      "label": "a comment on each issue",
+      "verb": "Post",
+      "description": "Comment on the issues in the source. Nothing else on the issue changes.",
+      "params": [
+        { "id": "mention", "label": "mentioning", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    },
+    {
+      "id": "transition_issue",
+      "label": "a status change",
+      "verb": "Apply",
+      "description": "Move the issues in the source to another status. The transition must exist in the project's workflow.",
+      "params": [
+        { "id": "status", "label": "to", "type": "enum", "values": ["To Do", "In Progress", "In Review", "Done"] },
+        { "id": "comment", "label": "with the comment", "type": "text", "placeholder": "why?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Jira Cloud is reached through the REST API with an API token tied to an Atlassian account or through an OAuth app; the automation acts as that account, so give it its own rather than borrowing a person's. Statuses, transitions and issue types are set per project workflow, so confirm the exact names with the project admin before building. Prefer commenting or assigning over transitioning, and never close or delete issues automatically unless the plan says so.",
+  "setup": {
+    "notes": "Ask the Jira site admin or the project lead for a service account with access to the projects named in the plan. An API token is created from that account's Atlassian profile.",
+    "docsUrl": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/"
+  }
+}

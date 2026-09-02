@@ -1,0 +1,61 @@
+{
+  "id": "web-rss",
+  "name": "Web pages & RSS",
+  "version": "1.0.0",
+  "description": "Articles from an RSS or Atom feed, and the content and links of any web page.",
+  "category": "Data & APIs",
+  "icon": "📰",
+  "kind": "integration",
+  "roles": ["input"],
+  "objects": [
+    {
+      "id": "articles",
+      "label": "articles",
+      "singular": "article",
+      "description": "Entries in an RSS or Atom feed, newest first.",
+      "timeField": "published",
+      "qualifier": { "label": "in the feed", "placeholder": "feed address" },
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "link", "label": "link", "type": "url" },
+        { "id": "author", "label": "author", "type": "string" },
+        { "id": "summary", "label": "summary", "type": "text", "description": "The short description the feed provides. Some feeds put the whole article here." },
+        { "id": "content", "label": "full text", "type": "text", "description": "The article body when the feed includes it; otherwise fetched from the link." },
+        { "id": "category", "label": "category", "type": "string", "description": "A tag or section the feed assigns, such as Security or Product." },
+        { "id": "published", "label": "published", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "pages",
+      "label": "web pages",
+      "singular": "web page",
+      "description": "A page fetched from an address, as readable text. Filter on last changed to watch a page for changes.",
+      "timeField": "last_changed",
+      "qualifier": { "label": "at the address", "placeholder": "https://…" },
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "url", "label": "address", "type": "url" },
+        { "id": "text", "label": "page text", "type": "text", "description": "The readable text of the page without navigation, menus and ads." },
+        { "id": "word_count", "label": "number of words", "type": "number" },
+        { "id": "fetched", "label": "fetched", "type": "datetime" },
+        { "id": "last_changed", "label": "last changed", "type": "datetime", "description": "When the page text last differed from the previous fetch." }
+      ]
+    },
+    {
+      "id": "links",
+      "label": "links on a page",
+      "singular": "link on a page",
+      "description": "Every link found on a page. Useful for picking up new PDFs or documents a site posts.",
+      "qualifier": { "label": "at the address", "placeholder": "https://…" },
+      "fields": [
+        { "id": "text", "label": "link text", "type": "string" },
+        { "id": "url", "label": "address", "type": "url" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Web page", "PDF", "Image", "Document", "Other"], "description": "Worked out from the address or file extension." }
+      ]
+    }
+  ],
+  "guidance": "Feeds are fetched over plain HTTPS with no login, so nothing is needed beyond outbound web access from wherever the automation runs. Pages are less reliable: layouts change without notice, some sites block automated fetching, and their terms of use or robots.txt may forbid it, so prefer a feed or an API whenever the site offers one. Poll no more often than the content changes; once an hour is plenty for most feeds, and a page behind a login should not be scraped at all.",
+  "setup": {
+    "notes": "Nothing to request for public feeds and pages. For content behind a login, ask the site owner for a feed, an API or an export instead of a scraper."
+  }
+}

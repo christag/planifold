@@ -1,0 +1,57 @@
+{
+  "id": "google-sheets",
+  "name": "Google Sheets",
+  "version": "1.0.0",
+  "description": "Rows and tabs in Google Sheets spreadsheets.",
+  "category": "Spreadsheets & files",
+  "icon": "🟩",
+  "website": "https://developers.google.com/sheets/api",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "rows",
+      "label": "rows",
+      "singular": "row",
+      "description": "Rows of a sheet. Filter by column name.",
+      "allowCustomFields": true,
+      "qualifier": { "label": "in the spreadsheet", "placeholder": "which spreadsheet?" },
+      "fields": []
+    },
+    {
+      "id": "tabs",
+      "label": "tabs",
+      "singular": "tab",
+      "description": "The sheets inside a spreadsheet.",
+      "qualifier": { "label": "in the spreadsheet", "placeholder": "which spreadsheet?" },
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "row_count", "label": "number of rows", "type": "number" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "append_rows",
+      "label": "new rows",
+      "verb": "Add",
+      "params": [
+        { "id": "spreadsheet", "label": "in the spreadsheet", "type": "text", "placeholder": "which spreadsheet?" },
+        { "id": "tab", "label": "on the tab", "type": "text", "placeholder": "tab name", "optional": true }
+      ]
+    },
+    {
+      "id": "create_spreadsheet",
+      "label": "a new spreadsheet",
+      "pattern": "create",
+      "params": [
+        { "id": "name", "label": "named", "type": "text", "placeholder": "file name" },
+        { "id": "folder", "label": "in the folder", "type": "text", "placeholder": "Drive folder", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Sheets are reached through the Google Sheets API. Column names are the first row of the tab; the plan should name the spreadsheet and tab exactly, and say whether the first row is a header. Appending is safer than overwriting.",
+  "setup": {
+    "notes": "Share the spreadsheet with the automation's service account. The Workspace admin can tell you its address."
+  }
+}

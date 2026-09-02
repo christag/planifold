@@ -1,0 +1,96 @@
+{
+  "id": "microsoft-teams",
+  "name": "Microsoft Teams",
+  "version": "1.0.0",
+  "description": "Channel posts, chats and channels in Microsoft Teams.",
+  "category": "Chat",
+  "icon": "🟪",
+  "website": "https://learn.microsoft.com/en-us/microsoftteams/platform/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "channel_messages",
+      "label": "channel messages",
+      "singular": "channel message",
+      "description": "Posts and replies in one team channel. Teams only lists messages one channel at a time.",
+      "timeField": "posted",
+      "qualifier": { "label": "in the channel", "placeholder": "which channel?" },
+      "fields": [
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "posted", "label": "posted", "type": "datetime" },
+        { "id": "is_reply", "label": "reply", "type": "boolean", "description": "A reply in a thread rather than a top-level post." },
+        { "id": "mention", "label": "mentioned person", "type": "person", "description": "Someone @mentioned in the message." },
+        { "id": "importance", "label": "importance", "type": "enum", "values": ["Normal", "Important", "Urgent"] },
+        { "id": "reply_count", "label": "number of replies", "type": "number" },
+        { "id": "attachment", "label": "attachment", "type": "attachment" }
+      ]
+    },
+    {
+      "id": "chat_messages",
+      "label": "chat messages",
+      "singular": "chat message",
+      "description": "Messages in one-to-one and group chats the account is part of. Not channel posts.",
+      "timeField": "sent",
+      "fields": [
+        { "id": "chat", "label": "chat", "type": "string", "description": "The chat's name, or the people in it when it has no name." },
+        { "id": "chat_type", "label": "chat type", "type": "enum", "values": ["One-on-one", "Group", "Meeting chat"] },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "sent", "label": "sent", "type": "datetime" },
+        { "id": "attachment", "label": "attachment", "type": "attachment" }
+      ]
+    },
+    {
+      "id": "channels",
+      "label": "channels",
+      "singular": "channel",
+      "description": "The channels in the teams the account belongs to.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "team", "label": "team", "type": "string" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Standard", "Private", "Shared"] },
+        { "id": "description", "label": "description", "type": "text" },
+        { "id": "member_count", "label": "number of members", "type": "number" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "post_message",
+      "label": "a message",
+      "verb": "Post",
+      "description": "Post to a channel. Choose whether each item becomes its own post.",
+      "params": [
+        { "id": "channel", "label": "in the channel", "type": "text", "placeholder": "which channel?", "description": "Team and channel, like Marketing › General." },
+        { "id": "mention", "label": "mentioning", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "optional": true },
+        { "id": "grouping", "label": "posted as", "type": "enum", "values": ["one post per item", "one post with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "send_chat",
+      "label": "a chat message",
+      "verb": "Send",
+      "description": "Send a direct chat to a person or a group.",
+      "params": [
+        { "id": "to", "label": "to", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "description": "A person, several people, or a piece that holds people." },
+        { "id": "grouping", "label": "sent as", "type": "enum", "values": ["one message per item", "one message with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "reply_to_message",
+      "label": "a reply on each message",
+      "verb": "Post",
+      "description": "Reply in the thread of each message in the source. The source must be Teams channel messages.",
+      "params": [
+        { "id": "mention", "label": "mentioning", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Teams is reached through the Microsoft Graph API. Reading channel and chat history needs application permissions that Microsoft only grants after a protected-API request, so most automations post through a Workflows webhook or a bot registered in Entra ID and read very little. Post to a channel people already watch rather than direct-messaging them, and never @mention a whole channel from an automation.",
+  "setup": {
+    "notes": "Ask the team owner to add a Workflows webhook to the channel if the plan only posts. If it reads messages, ask the Microsoft 365 administrator for an Entra ID app with Teams permissions; that approval can take a while.",
+    "docsUrl": "https://learn.microsoft.com/en-us/graph/teams-concept-overview"
+  }
+}

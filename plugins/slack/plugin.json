@@ -1,0 +1,94 @@
+{
+  "id": "slack",
+  "name": "Slack",
+  "version": "1.0.0",
+  "description": "Messages, channels and people in a Slack workspace.",
+  "category": "Chat",
+  "icon": "💬",
+  "website": "https://api.slack.com/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "messages",
+      "label": "messages",
+      "singular": "message",
+      "description": "Messages in channels the app has been added to, newest first.",
+      "timeField": "posted_at",
+      "fields": [
+        { "id": "channel", "label": "channel", "type": "string", "description": "Channel name without the #, or a person for DMs." },
+        { "id": "sender", "label": "sender", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "posted_at", "label": "posted", "type": "datetime" },
+        { "id": "in_thread", "label": "a reply in a thread", "type": "boolean" },
+        { "id": "reaction", "label": "reaction", "type": "string", "description": "An emoji reaction on the message, by name, like white_check_mark or eyes." },
+        { "id": "file", "label": "file", "type": "attachment" }
+      ]
+    },
+    {
+      "id": "channels",
+      "label": "channels",
+      "singular": "channel",
+      "description": "Public and private channels the app can see.",
+      "timeField": "created",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "topic", "label": "topic", "type": "string" },
+        { "id": "member_count", "label": "number of members", "type": "number" },
+        { "id": "is_private", "label": "private", "type": "boolean" },
+        { "id": "archived", "label": "archived", "type": "boolean" },
+        { "id": "created", "label": "created", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "users",
+      "label": "users",
+      "singular": "user",
+      "description": "Members of the workspace, including guests and bots.",
+      "fields": [
+        { "id": "name", "label": "full name", "type": "string" },
+        { "id": "handle", "label": "handle", "type": "string", "description": "The @name people type to mention them." },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "title", "label": "job title", "type": "string" },
+        { "id": "timezone", "label": "time zone", "type": "string" },
+        { "id": "is_admin", "label": "admin", "type": "boolean" },
+        { "id": "deactivated", "label": "deactivated", "type": "boolean" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "post_message",
+      "label": "a message",
+      "verb": "Post",
+      "description": "Post to a channel or send a DM. Choose whether each item becomes its own message.",
+      "params": [
+        { "id": "channel", "label": "in", "type": "ref-or-text", "placeholder": "#channel or a person", "refLabel": "a DM to each person in {piece}", "description": "A channel name, a person's handle, or a piece that holds people." },
+        { "id": "grouping", "label": "sent as", "type": "enum", "values": ["one message per item", "one message with everything", "one thread with a reply per item"], "optional": true }
+      ]
+    },
+    {
+      "id": "reply_in_thread",
+      "label": "a reply on each message",
+      "verb": "Post",
+      "description": "Reply in the thread of the messages in the source, so the answer sits next to the question.",
+      "params": [
+        { "id": "broadcast", "label": "", "type": "enum", "values": ["in the thread only", "in the thread and the channel"], "optional": true }
+      ]
+    },
+    {
+      "id": "add_reaction",
+      "label": "a reaction on each message",
+      "verb": "Add",
+      "description": "Mark the messages in the source with an emoji, for example to show they were handled.",
+      "params": [
+        { "id": "emoji", "label": "using", "type": "text", "placeholder": "emoji name, like eyes" }
+      ]
+    }
+  ],
+  "guidance": "Slack is reached through the Web API with a bot token from a Slack app installed in the workspace. The bot can only read or post in channels it has been invited to, so invite it to every channel the plan names; private channels and DMs need extra scopes an admin must approve. Prefer channels over DMs, post one message per item so people can thread on each, and expect rate limits of about one message per second per channel.",
+  "setup": {
+    "notes": "Ask the Slack workspace admin to create or install a Slack app for this automation and to approve the scopes it needs, such as reading channel history and posting messages.",
+    "docsUrl": "https://api.slack.com/apis"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "workday",
+  "name": "Workday",
+  "version": "1.0.0",
+  "description": "Workers, time off, job requisitions and org units in Workday HCM.",
+  "category": "HR",
+  "icon": "🏢",
+  "website": "https://developer.workday.com",
+  "kind": "integration",
+  "roles": ["input"],
+  "objects": [
+    {
+      "id": "workers",
+      "label": "employees",
+      "singular": "employee",
+      "description": "Workers on record: employees and contingent workers, with their current position.",
+      "timeField": "hire_date",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "employee_id", "label": "employee ID", "type": "string", "description": "The Workday worker ID. Use it to match people across systems instead of names." },
+        { "id": "work_email", "label": "work email", "type": "email" },
+        { "id": "job_title", "label": "job title", "type": "string" },
+        { "id": "department", "label": "department", "type": "string", "description": "The supervisory organization the worker sits in." },
+        { "id": "location", "label": "location", "type": "string", "description": "The primary work location, such as an office or Remote." },
+        { "id": "manager", "label": "manager", "type": "person" },
+        { "id": "employment_status", "label": "employment status", "type": "enum", "values": ["Active", "On Leave", "Terminated"] },
+        { "id": "hire_date", "label": "hire date", "type": "date", "description": "The most recent hire date. New hires are workers whose hire date is in the last few days." }
+      ]
+    },
+    {
+      "id": "time_off_requests",
+      "label": "time-off requests",
+      "singular": "time-off request",
+      "description": "Absence requests and where they are in approval.",
+      "timeField": "requested_on",
+      "fields": [
+        { "id": "worker", "label": "employee", "type": "person" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Vacation", "Sick", "Personal", "Floating Holiday", "Jury Duty", "Bereavement"], "description": "Time-off plans are set up per company; these are the usual ones. Check the exact names with HR." },
+        { "id": "start_date", "label": "first day", "type": "date" },
+        { "id": "end_date", "label": "last day", "type": "date" },
+        { "id": "days", "label": "days requested", "type": "number" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Submitted", "Approved", "Denied", "Cancelled"] },
+        { "id": "approver", "label": "approver", "type": "person", "description": "Usually the manager. Unassigned until the request is submitted." },
+        { "id": "requested_on", "label": "requested", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "job_requisitions",
+      "label": "job requisitions",
+      "singular": "job requisition",
+      "description": "Open and recently closed positions being recruited for.",
+      "timeField": "opened_on",
+      "fields": [
+        { "id": "title", "label": "job title", "type": "string" },
+        { "id": "requisition_id", "label": "requisition ID", "type": "string" },
+        { "id": "department", "label": "department", "type": "string" },
+        { "id": "location", "label": "location", "type": "string" },
+        { "id": "hiring_manager", "label": "hiring manager", "type": "person" },
+        { "id": "recruiter", "label": "recruiter", "type": "person" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Open", "Filled", "Frozen", "Closed"], "description": "Frozen means approved but not being recruited for right now." },
+        { "id": "openings", "label": "number of openings", "type": "number" },
+        { "id": "opened_on", "label": "opened", "type": "date" }
+      ]
+    },
+    {
+      "id": "org_units",
+      "label": "org units",
+      "singular": "org unit",
+      "description": "Supervisory organizations: the reporting tree of teams and departments.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "manager", "label": "manager", "type": "person" },
+        { "id": "parent", "label": "parent org unit", "type": "string" },
+        { "id": "cost_center", "label": "cost center", "type": "string" },
+        { "id": "headcount", "label": "headcount", "type": "number", "description": "Active workers in this unit, not counting units below it." }
+      ]
+    }
+  ],
+  "guidance": "Workday is reached through its REST or SOAP APIs as an Integration System User (ISU) that belongs to a security group, and most teams pull data by running a custom report as a service (RaaS) rather than calling the raw APIs. The integration team must grant the ISU access to each field you name, so keep the list short and avoid pay, home address, national ID and dates of birth unless the plan cannot work without them. Automations are read-only here: hires, terminations and time-off changes go through Workday's own business processes and approvals, never through an integration.",
+  "setup": {
+    "notes": "Ask the HRIS or Workday integrations team for an ISU and a security group scoped to the fields in the plan. Expect a data-privacy review before personal data leaves Workday.",
+    "docsUrl": "https://community.workday.com/api"
+  }
+}

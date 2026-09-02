@@ -1,0 +1,60 @@
+{
+  "id": "http-api",
+  "name": "A web API",
+  "version": "1.0.0",
+  "description": "Responses from a URL, incoming webhooks, and web requests to any HTTP service.",
+  "category": "Data & APIs",
+  "icon": "🔌",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "responses",
+      "label": "responses",
+      "singular": "response",
+      "description": "What comes back when the automation calls an address. Name fields from the JSON to filter on them.",
+      "allowCustomFields": true,
+      "timeField": "received",
+      "qualifier": { "label": "at the address", "placeholder": "https://…" },
+      "fields": [
+        { "id": "status_code", "label": "status code", "type": "number", "description": "200 means OK. 4xx means the request was refused, 5xx means the service failed." },
+        { "id": "content_type", "label": "content type", "type": "string", "description": "Usually application/json, text/html or text/csv." },
+        { "id": "body", "label": "body", "type": "text" },
+        { "id": "received", "label": "received", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "incoming_requests",
+      "label": "incoming webhooks",
+      "singular": "incoming webhook",
+      "description": "Requests other systems send to an address the automation listens on. Name fields from the payload to filter on them.",
+      "allowCustomFields": true,
+      "timeField": "received",
+      "qualifier": { "label": "sent to the path", "placeholder": "/hooks/…" },
+      "fields": [
+        { "id": "method", "label": "method", "type": "enum", "values": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+        { "id": "sender", "label": "sender", "type": "string", "description": "The system or address the request came from, if it identifies itself." },
+        { "id": "body", "label": "body", "type": "text" },
+        { "id": "received", "label": "received", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "send_request",
+      "label": "a web request",
+      "verb": "Post",
+      "description": "One request per record, or one request with everything in it.",
+      "params": [
+        { "id": "url", "label": "to the address", "type": "text", "placeholder": "https://…" },
+        { "id": "method", "label": "using the method", "type": "enum", "values": ["POST", "PUT", "PATCH", "GET", "DELETE"], "optional": true },
+        { "id": "format", "label": "formatted as", "type": "enum", "values": ["JSON", "form fields", "plain text"], "optional": true },
+        { "id": "grouping", "label": "sent as", "type": "enum", "values": ["one request per item", "one request with everything"], "optional": true }
+      ]
+    }
+  ],
+  "guidance": "A web API is anything reachable over HTTPS: a vendor's REST API, an internal service, or a webhook address another system will call. Authentication is almost always an API key or bearer token in a header, issued to the automation rather than to a person, and stored outside the plan. Rate limits and pagination are the usual surprises; check the API's documentation for both, and confirm the address is reachable from wherever the automation runs, since internal services are often not reachable from the cloud.",
+  "setup": {
+    "notes": "The team that owns the service can issue an API key or token and say which addresses are allowed. For webhooks, they need the address the automation will listen on before they can send anything."
+  }
+}

@@ -1,0 +1,27 @@
+# docker compose up -d   /   podman compose up -d
+services:
+  piecewise:
+    build: .
+    image: ghcr.io/christag/piecewise:latest
+    ports:
+      - "3000:3000"
+    environment:
+      # Generate one with:  openssl rand -base64 32
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env}
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
+      # First administrator, created once when the database is empty.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      # Optional single sign-on (see docs/deploy.md)
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    volumes:
+      - piecewise-data:/data
+      # Drop extra plugin directories here; they load on start or via Admin → Integrations → Reload.
+      - ./plugins-extra:/plugins:ro
+    restart: unless-stopped
+
+volumes:
+  piecewise-data:

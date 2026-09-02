@@ -1,0 +1,103 @@
+{
+  "id": "outlook",
+  "name": "Microsoft Outlook",
+  "version": "1.0.0",
+  "description": "Microsoft 365 email, calendar events and contacts.",
+  "category": "Email & calendar",
+  "icon": "📧",
+  "website": "https://learn.microsoft.com/en-us/graph/outlook-mail-concept-overview",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "emails",
+      "label": "emails",
+      "singular": "email",
+      "description": "Messages in a mailbox, newest first. Shared mailboxes count if the automation has access.",
+      "timeField": "received",
+      "fields": [
+        { "id": "from", "label": "sender", "type": "email" },
+        { "id": "to", "label": "recipient", "type": "email" },
+        { "id": "subject", "label": "subject", "type": "string" },
+        { "id": "body", "label": "body", "type": "text" },
+        { "id": "received", "label": "date received", "type": "datetime" },
+        { "id": "folder", "label": "folder", "type": "string", "description": "A mail folder such as Inbox, Sent Items, Archive, or one you made." },
+        { "id": "importance", "label": "importance", "type": "enum", "values": ["Low", "Normal", "High"] },
+        { "id": "flagged", "label": "flagged", "type": "boolean", "description": "Marked for follow-up." },
+        { "id": "attachment", "label": "attachment", "type": "attachment" }
+      ]
+    },
+    {
+      "id": "events",
+      "label": "calendar events",
+      "singular": "calendar event",
+      "description": "Meetings and appointments on a calendar, including ones the mailbox was invited to.",
+      "timeField": "start",
+      "qualifier": { "label": "on the calendar", "placeholder": "which calendar?" },
+      "fields": [
+        { "id": "subject", "label": "subject", "type": "string" },
+        { "id": "start", "label": "start", "type": "datetime" },
+        { "id": "end", "label": "end", "type": "datetime" },
+        { "id": "organizer", "label": "organizer", "type": "person" },
+        { "id": "attendee", "label": "attendee", "type": "person", "description": "A person invited to the event." },
+        { "id": "location", "label": "location", "type": "string", "description": "A room, an address, or the online meeting name." },
+        { "id": "online", "label": "online meeting", "type": "boolean", "description": "Has a Teams or other online meeting link." },
+        { "id": "show_as", "label": "shown as", "type": "enum", "values": ["Free", "Tentative", "Busy", "Out of Office", "Working Elsewhere"] },
+        { "id": "response", "label": "response", "type": "enum", "values": ["Accepted", "Tentative", "Declined", "Not responded"], "description": "How the calendar owner answered the invitation." }
+      ]
+    },
+    {
+      "id": "contacts",
+      "label": "contacts",
+      "singular": "contact",
+      "description": "People saved in the mailbox's contacts, not the whole company directory.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "company", "label": "company", "type": "string" },
+        { "id": "job_title", "label": "job title", "type": "string" },
+        { "id": "phone", "label": "phone", "type": "string" },
+        { "id": "category", "label": "category", "type": "string", "description": "An Outlook category on the contact, like Vendors or Press." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "send_email",
+      "label": "an email",
+      "description": "Send mail from the mailbox this runs as. Choose whether each item becomes its own message.",
+      "params": [
+        { "id": "to", "label": "to", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "description": "An address, several addresses, or a piece that holds people." },
+        { "id": "subject", "label": "with the subject", "type": "text", "placeholder": "subject line", "optional": true },
+        { "id": "cc", "label": "copying", "type": "text", "placeholder": "who?", "optional": true },
+        { "id": "grouping", "label": "sent as", "type": "enum", "values": ["one email per item", "one email with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "create_draft",
+      "label": "a draft",
+      "description": "Nothing is sent. The draft waits in the mailbox for a person to review and send.",
+      "params": [
+        { "id": "to", "label": "addressed to", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "optional": true },
+        { "id": "subject", "label": "with the subject", "type": "text", "placeholder": "subject line", "optional": true }
+      ]
+    },
+    {
+      "id": "create_event",
+      "label": "a calendar event",
+      "pattern": "create",
+      "description": "One event per record. Invitations go out to anyone invited.",
+      "params": [
+        { "id": "start_from", "label": "starting at the time in", "type": "field", "placeholder": "which field?", "description": "The source field that holds the date and time." },
+        { "id": "invite", "label": "inviting", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "optional": true },
+        { "id": "calendar", "label": "on the calendar", "type": "text", "placeholder": "which calendar?", "optional": true, "description": "Leave blank for the mailbox's own calendar." },
+        { "id": "title_from", "label": "titled after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Outlook is reached through the Microsoft Graph API, normally as an Entra ID app registration with application permissions limited to specific mailboxes by an application access policy. Shared mailboxes and other people's calendars need their own grant from the tenant administrator; the automation cannot see them just because a person can. Prefer a draft over a send when someone should review first, and send bulk mail from a shared or service mailbox rather than a person's.",
+  "setup": {
+    "notes": "Ask the Microsoft 365 administrator to register the app in Entra ID and grant it access to the mailbox or calendar this will run as. Shared mailboxes and room calendars need to be named in that grant.",
+    "docsUrl": "https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview"
+  }
+}

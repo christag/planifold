@@ -1,0 +1,99 @@
+{
+  "id": "confluence",
+  "name": "Confluence",
+  "version": "1.0.0",
+  "description": "Pages, spaces and comments in Confluence Cloud.",
+  "category": "Docs & wikis",
+  "icon": "📘",
+  "website": "https://developer.atlassian.com/cloud/confluence/",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "pages",
+      "label": "pages",
+      "singular": "page",
+      "description": "Pages across all spaces the account can see. Narrow by space, label or parent page.",
+      "timeField": "updated",
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "space", "label": "space", "type": "string", "description": "The space's name or key, like Engineering or ENG." },
+        { "id": "creator", "label": "created by", "type": "person" },
+        { "id": "last_editor", "label": "last edited by", "type": "person" },
+        { "id": "updated", "label": "last updated", "type": "datetime" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Current", "Draft", "Archived", "Trashed"] },
+        { "id": "label", "label": "label", "type": "string", "description": "A label on the page, like meeting-notes or runbook." },
+        { "id": "parent", "label": "parent page", "type": "string", "description": "The page it sits under in the page tree." },
+        { "id": "body", "label": "body", "type": "text" }
+      ]
+    },
+    {
+      "id": "spaces",
+      "label": "spaces",
+      "singular": "space",
+      "description": "The spaces in the site.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "key", "label": "key", "type": "string", "description": "The short code in the space's URL, like ENG." },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Team space", "Personal space"] },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Current", "Archived"] },
+        { "id": "description", "label": "description", "type": "text" }
+      ]
+    },
+    {
+      "id": "comments",
+      "label": "comments",
+      "singular": "comment",
+      "description": "Comments on pages, both at the bottom of the page and inline on the text.",
+      "timeField": "posted",
+      "fields": [
+        { "id": "page", "label": "page", "type": "string" },
+        { "id": "space", "label": "space", "type": "string" },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "posted", "label": "posted", "type": "datetime" },
+        { "id": "kind", "label": "kind", "type": "enum", "values": ["Page comment", "Inline comment"] },
+        { "id": "resolved", "label": "resolved", "type": "boolean", "description": "Inline comments can be marked resolved." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_page",
+      "label": "a page",
+      "pattern": "create",
+      "description": "A new page in a space. Choose whether each item becomes its own page.",
+      "params": [
+        { "id": "space", "label": "in the space", "type": "text", "placeholder": "space name or key" },
+        { "id": "parent", "label": "under the page", "type": "text", "placeholder": "parent page title", "optional": true },
+        { "id": "title", "label": "titled", "type": "text", "placeholder": "page title", "optional": true },
+        { "id": "grouping", "label": "as", "type": "enum", "values": ["one page per item", "one page with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "append_to_page",
+      "label": "a new section",
+      "verb": "Add",
+      "description": "Append to an existing page without touching what is already there. Good for running logs and weekly updates.",
+      "params": [
+        { "id": "page", "label": "on the page", "type": "text", "placeholder": "page title" },
+        { "id": "position", "label": "at the", "type": "enum", "values": ["bottom", "top"], "suffix": "of the page", "optional": true }
+      ]
+    },
+    {
+      "id": "post_comment",
+      "label": "a comment",
+      "verb": "Post",
+      "description": "Comment on a named page, or on each page in the source when the source is Confluence pages.",
+      "params": [
+        { "id": "page", "label": "on the page", "type": "text", "placeholder": "page title", "optional": true, "description": "Leave blank to comment on each page in the source." },
+        { "id": "mention", "label": "mentioning", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Confluence Cloud is reached through its REST API with an API token from a named Atlassian account or an OAuth 2.0 app; everything the automation writes is attributed to that account, so give it an obvious name like Reports bot. Page bodies use Atlassian's storage format rather than plain HTML or Markdown, and an update must send the page's current version number or it is rejected. Prefer creating child pages or appending a section over rewriting pages people maintain by hand.",
+  "setup": {
+    "notes": "Ask the Confluence site administrator for an account and API token that can see the spaces named in the plan. Each space's administrator controls who may create pages there.",
+    "docsUrl": "https://developer.atlassian.com/cloud/confluence/rest/v2/intro/"
+  }
+}

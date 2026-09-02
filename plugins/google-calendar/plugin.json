@@ -1,0 +1,85 @@
+{
+  "id": "google-calendar",
+  "name": "Google Calendar",
+  "version": "1.0.0",
+  "description": "Events and calendars in Google Calendar.",
+  "category": "Email & calendar",
+  "icon": "📅",
+  "website": "https://developers.google.com/workspace/calendar/api",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "events",
+      "label": "events",
+      "singular": "event",
+      "description": "Meetings, appointments and all-day events on one calendar. Google lists events one calendar at a time.",
+      "timeField": "start",
+      "qualifier": { "label": "on the calendar", "placeholder": "which calendar?" },
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "start", "label": "start", "type": "datetime" },
+        { "id": "end", "label": "end", "type": "datetime" },
+        { "id": "all_day", "label": "all day", "type": "boolean" },
+        { "id": "organizer", "label": "organizer", "type": "person" },
+        { "id": "guest", "label": "guest", "type": "person", "description": "A person invited to the event." },
+        { "id": "location", "label": "location", "type": "string" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Confirmed", "Tentative", "Cancelled"] },
+        { "id": "response", "label": "response", "type": "enum", "values": ["Accepted", "Declined", "Tentative", "Needs action"], "description": "How the calendar owner answered the invitation." }
+      ]
+    },
+    {
+      "id": "calendars",
+      "label": "calendars",
+      "singular": "calendar",
+      "description": "The calendars the account can see, including shared and subscribed ones.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "access", "label": "access", "type": "enum", "values": ["Owner", "Can edit", "Can view", "Free/busy only"] },
+        { "id": "primary", "label": "primary", "type": "boolean", "description": "The account's own calendar." },
+        { "id": "time_zone", "label": "time zone", "type": "string" },
+        { "id": "hidden", "label": "hidden", "type": "boolean", "description": "Not shown in the calendar list." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_event",
+      "label": "an event",
+      "pattern": "create",
+      "description": "One event per record. Guests get an invitation unless the builder turns notifications off.",
+      "params": [
+        { "id": "start_from", "label": "starting at the time in", "type": "field", "placeholder": "which field?", "description": "The source field that holds the date and time." },
+        { "id": "calendar", "label": "on the calendar", "type": "text", "placeholder": "which calendar?", "optional": true, "description": "Leave blank for the account's primary calendar." },
+        { "id": "invite", "label": "inviting", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "optional": true },
+        { "id": "title_from", "label": "titled after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "block_time",
+      "label": "a time block",
+      "pattern": "create",
+      "description": "A busy block with no guests, for example prep time before each meeting or a slot per task.",
+      "params": [
+        { "id": "start_from", "label": "starting at the time in", "type": "field", "placeholder": "which field?" },
+        { "id": "duration", "label": "lasting", "type": "number", "placeholder": "how many minutes?", "suffix": "minutes", "optional": true },
+        { "id": "calendar", "label": "on the calendar", "type": "text", "placeholder": "which calendar?", "optional": true, "description": "Leave blank for the account's primary calendar." }
+      ]
+    },
+    {
+      "id": "add_guests",
+      "label": "guests",
+      "verb": "Add",
+      "description": "Invite the people in the source to an existing event. The source must hold people or email addresses.",
+      "params": [
+        { "id": "event", "label": "to the event", "type": "text", "placeholder": "event title" },
+        { "id": "calendar", "label": "on the calendar", "type": "text", "placeholder": "which calendar?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Google Calendar is reached through the Calendar API, normally as a service account with domain-wide delegation acting as a named user, or with each calendar shared directly to the service account's address. Every read and write names a calendar: a person's own is called primary, and shared calendars are addressed by an id the owner copies from calendar settings. Creating an event with guests sends invitations straight away, so prefer writing to a dedicated automation calendar people subscribe to over inviting them one by one.",
+  "setup": {
+    "notes": "Ask the Google Workspace administrator for a service account, then have each calendar's owner share it with the service account's address at the access level the plan needs.",
+    "docsUrl": "https://developers.google.com/workspace/calendar/api/guides/overview"
+  }
+}

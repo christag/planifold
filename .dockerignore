@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+data
+.git
+.github
+e2e
+test-results
+playwright-report
+docs
+*.md
+!plugins/**/README.md
+.env
+.env.*
+plugins-extra

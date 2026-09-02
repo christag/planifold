@@ -1,0 +1,139 @@
+{
+  "id": "salesforce",
+  "name": "Salesforce",
+  "version": "1.0.0",
+  "description": "Accounts, contacts, opportunities, cases and leads in Salesforce CRM.",
+  "category": "CRM & sales",
+  "icon": "☁️",
+  "website": "https://developer.salesforce.com/docs",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "accounts",
+      "label": "accounts",
+      "singular": "account",
+      "description": "Companies and organizations you sell to or partner with.",
+      "timeField": "last_modified",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Prospect", "Customer - Direct", "Customer - Channel", "Channel Partner / Reseller", "Technology Partner", "Other"], "description": "Picklist values vary by org; these are the defaults." },
+        { "id": "industry", "label": "industry", "type": "string" },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "annual_revenue", "label": "annual revenue", "type": "number" },
+        { "id": "website", "label": "website", "type": "url" },
+        { "id": "billing_state", "label": "billing state", "type": "string" },
+        { "id": "last_modified", "label": "last modified", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "contacts",
+      "label": "contacts",
+      "singular": "contact",
+      "description": "People at accounts.",
+      "timeField": "last_modified",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "phone", "label": "phone", "type": "string" },
+        { "id": "title", "label": "job title", "type": "string" },
+        { "id": "account", "label": "account", "type": "string" },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "last_modified", "label": "last modified", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "opportunities",
+      "label": "opportunities",
+      "singular": "opportunity",
+      "description": "Deals in the pipeline, open or closed.",
+      "timeField": "last_modified",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "account", "label": "account", "type": "string" },
+        { "id": "stage", "label": "stage", "type": "enum", "values": ["Prospecting", "Qualification", "Needs Analysis", "Value Proposition", "Id. Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Closed Won", "Closed Lost"], "description": "The default sales stages; most orgs trim or rename them." },
+        { "id": "amount", "label": "amount", "type": "number" },
+        { "id": "close_date", "label": "close date", "type": "date", "description": "The expected close date while open, the actual one once closed." },
+        { "id": "probability", "label": "probability (%)", "type": "number" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["New Customer", "Existing Customer - Upgrade", "Existing Customer - Replacement", "Existing Customer - Downgrade"] },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "last_modified", "label": "last modified", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "cases",
+      "label": "cases",
+      "singular": "case",
+      "description": "Customer support cases.",
+      "timeField": "created",
+      "fields": [
+        { "id": "case_number", "label": "case number", "type": "string" },
+        { "id": "subject", "label": "subject", "type": "string" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["New", "Working", "Escalated", "Closed"] },
+        { "id": "priority", "label": "priority", "type": "enum", "values": ["High", "Medium", "Low"] },
+        { "id": "origin", "label": "origin", "type": "enum", "values": ["Phone", "Email", "Web"], "description": "Where the case came in from." },
+        { "id": "account", "label": "account", "type": "string" },
+        { "id": "contact", "label": "contact", "type": "string" },
+        { "id": "owner", "label": "owner", "type": "person", "description": "A user or a queue." },
+        { "id": "created", "label": "created", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "leads",
+      "label": "leads",
+      "singular": "lead",
+      "description": "Prospects who have not been converted to contacts yet.",
+      "timeField": "created",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "company", "label": "company", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Open - Not Contacted", "Working - Contacted", "Closed - Converted", "Closed - Not Converted"] },
+        { "id": "lead_source", "label": "lead source", "type": "enum", "values": ["Web", "Phone Inquiry", "Partner Referral", "Purchased List", "Other"] },
+        { "id": "rating", "label": "rating", "type": "enum", "values": ["Hot", "Warm", "Cold"] },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "created", "label": "created", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_lead",
+      "label": "a lead",
+      "pattern": "create",
+      "description": "One new lead per record. Duplicate rules may block records that match an existing lead or contact.",
+      "params": [
+        { "id": "lead_source", "label": "with the source", "type": "enum", "values": ["Web", "Phone Inquiry", "Partner Referral", "Purchased List", "Other"], "optional": true },
+        { "id": "owner", "label": "owned by", "type": "text", "placeholder": "a user or queue", "optional": true, "description": "Leave blank to let assignment rules decide." },
+        { "id": "name_from", "label": "named after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "create_case",
+      "label": "a case",
+      "pattern": "create",
+      "description": "One new case per record.",
+      "params": [
+        { "id": "origin", "label": "with the origin", "type": "enum", "values": ["Phone", "Email", "Web"] },
+        { "id": "contact", "label": "for the contact", "type": "text", "placeholder": "name or email", "optional": true },
+        { "id": "owner", "label": "assigned to", "type": "text", "placeholder": "a user or queue", "optional": true },
+        { "id": "subject_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "log_activity",
+      "label": "an activity on each record",
+      "verb": "Log",
+      "description": "Log a completed task on the accounts, contacts, leads or cases in the source. The record itself does not change.",
+      "params": [
+        { "id": "type", "label": "of type", "type": "enum", "values": ["Call", "Email", "Meeting", "Other"] },
+        { "id": "subject", "label": "with the subject", "type": "text", "placeholder": "subject line", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Salesforce is reached through the REST API as a Connected App with OAuth, running as a dedicated integration user whose profile limits which objects and fields it can see or edit. Custom fields end in __c and picklist values differ from the defaults in almost every org, so confirm field API names and values with the Salesforce admin. Creating records fires validation rules, flows and duplicate rules, so expect some rows to be rejected; log activities or add records rather than changing stages or amounts automatically.",
+  "setup": {
+    "notes": "Ask the Salesforce admin for a Connected App and an integration user with the object permissions the plan needs. They will usually want it tested in a sandbox first.",
+    "docsUrl": "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_rest.htm"
+  }
+}

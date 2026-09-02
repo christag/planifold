@@ -1,0 +1,41 @@
+{
+  "id": "report",
+  "name": "A document for me",
+  "version": "1.0.0",
+  "description": "When the result is something a person reads: a document, a table, a note in the inbox.",
+  "category": "Just show me",
+  "icon": "📄",
+  "kind": "integration",
+  "roles": ["output"],
+  "actions": [
+    {
+      "id": "document",
+      "label": "a document",
+      "verb": "Turn",
+      "description": "A file or page written from the source.",
+      "params": [
+        { "id": "format", "label": "into", "type": "enum", "values": ["a Markdown page", "a PDF", "a Word document", "a slide deck", "a spreadsheet"] },
+        { "id": "delivery", "label": "delivered", "type": "enum", "values": ["by email to me", "as a link I can open", "into a shared folder"] },
+        { "id": "audience", "label": "written for", "type": "text", "placeholder": "who reads it?", "optional": true }
+      ]
+    },
+    {
+      "id": "notification",
+      "label": "a short notification",
+      "verb": "Turn",
+      "description": "A one-line heads-up, not the whole thing.",
+      "params": [
+        { "id": "channel", "label": "sent by", "type": "enum", "values": ["email", "Slack DM", "Teams chat", "text message"] },
+        { "id": "when", "label": "", "type": "enum", "values": ["only when there is something new", "every time it runs"], "optional": true }
+      ]
+    },
+    {
+      "id": "answer",
+      "label": "an answer on screen",
+      "verb": "Show",
+      "description": "No delivery. The result appears wherever the automation is run.",
+      "params": []
+    }
+  ],
+  "guidance": "Prefer this output when a person just needs to read the result. It keeps the automation from writing into systems of record and is the easiest thing to build first."
+}

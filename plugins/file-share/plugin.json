@@ -1,0 +1,82 @@
+{
+  "id": "file-share",
+  "name": "A shared folder",
+  "version": "1.0.0",
+  "description": "Files and folders on a network share, SFTP server or mounted drive.",
+  "category": "Spreadsheets & files",
+  "icon": "📁",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "files",
+      "label": "files",
+      "singular": "file",
+      "description": "Files in a folder and the folders below it.",
+      "timeField": "modified",
+      "qualifier": { "label": "in the folder", "placeholder": "which folder?" },
+      "fields": [
+        { "id": "name", "label": "file name", "type": "string" },
+        { "id": "folder", "label": "subfolder", "type": "string", "description": "The path below the folder named above, such as Invoices/2026." },
+        { "id": "type", "label": "type", "type": "enum", "values": ["PDF", "CSV", "Excel", "Word", "Image", "Text", "Other"], "description": "Worked out from the file extension." },
+        { "id": "size", "label": "size (MB)", "type": "number" },
+        { "id": "modified", "label": "last modified", "type": "datetime" },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "owner", "label": "owner", "type": "person", "description": "Who created or last saved the file. Not every share records this." }
+      ]
+    },
+    {
+      "id": "folders",
+      "label": "folders",
+      "singular": "folder",
+      "description": "The folders directly inside a folder.",
+      "timeField": "modified",
+      "qualifier": { "label": "in the folder", "placeholder": "which folder?" },
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "path", "label": "path", "type": "string" },
+        { "id": "file_count", "label": "number of files", "type": "number" },
+        { "id": "modified", "label": "last modified", "type": "datetime", "description": "When something inside it last changed." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "save_file",
+      "label": "a file",
+      "verb": "Save",
+      "description": "Writes the result as one file. Choose a format the next reader can open.",
+      "params": [
+        { "id": "folder", "label": "in the folder", "type": "text", "placeholder": "which folder?" },
+        { "id": "name", "label": "named", "type": "text", "placeholder": "file name", "optional": true, "description": "Leave empty to name it after the source and the date." },
+        { "id": "format", "label": "in the format", "type": "enum", "values": ["CSV", "Excel", "PDF", "Word", "JSON", "plain text"], "optional": true },
+        { "id": "if_exists", "label": "if the file exists", "type": "enum", "values": ["overwrite it", "keep both", "skip it"], "optional": true }
+      ]
+    },
+    {
+      "id": "move_files",
+      "label": "the files",
+      "pattern": "create",
+      "verb": "Move",
+      "description": "Moves each file in the source. Files disappear from where they were.",
+      "params": [
+        { "id": "to_folder", "label": "into the folder", "type": "text", "placeholder": "which folder?" },
+        { "id": "if_exists", "label": "if a file with that name exists", "type": "enum", "values": ["overwrite it", "keep both", "skip it"], "optional": true }
+      ]
+    },
+    {
+      "id": "create_folder",
+      "label": "a new folder",
+      "pattern": "create",
+      "description": "One folder per record, for example a folder per new client or project.",
+      "params": [
+        { "id": "parent", "label": "inside the folder", "type": "text", "placeholder": "which folder?" },
+        { "id": "name_from", "label": "named after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "A shared folder is a Windows (SMB) share, an SFTP server or a drive mounted on the machine the automation runs on, and it is reached with a service account that has its own permissions on the share. Paths and file names should be spelled exactly, with the drive letter or UNC path the server uses rather than the one on someone's laptop, and a file that is still being written can be picked up half-finished, so wait until it has stopped changing. Ask for read access to the source folders and write access only to the destination folder; never run as a person's account.",
+  "setup": {
+    "notes": "The IT or systems team can create a service account and grant it access to the named folders. Tell them which folders are read and which are written."
+  }
+}

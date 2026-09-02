@@ -1,0 +1,60 @@
+{
+  "id": "sql-database",
+  "name": "A database",
+  "version": "1.0.0",
+  "description": "Rows and tables in a SQL database such as Postgres, MySQL or SQL Server.",
+  "category": "Data & APIs",
+  "icon": "🗄️",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "rows",
+      "label": "rows",
+      "singular": "row",
+      "description": "Rows of a table or view. Filter by column name.",
+      "allowCustomFields": true,
+      "qualifier": { "label": "in the table", "placeholder": "which table?" },
+      "fields": []
+    },
+    {
+      "id": "tables",
+      "label": "tables",
+      "singular": "table",
+      "description": "The tables and views in the database, with a rough row count.",
+      "timeField": "last_updated",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "row_count", "label": "number of rows", "type": "number", "description": "An estimate from the database's statistics, not an exact count." },
+        { "id": "last_updated", "label": "last updated", "type": "datetime", "description": "When a row was last inserted or changed, if the database tracks it." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "insert_rows",
+      "label": "new rows",
+      "verb": "Add",
+      "description": "One new row per record. Existing rows are left alone.",
+      "params": [
+        { "id": "table", "label": "in the table", "type": "text", "placeholder": "which table?" },
+        { "id": "columns", "label": "with the columns", "type": "fields", "placeholder": "which columns?", "optional": true, "description": "Leave empty to write every field whose name matches a column." },
+        { "id": "on_conflict", "label": "if a row already exists", "type": "enum", "values": ["skip it", "update it"], "optional": true }
+      ]
+    },
+    {
+      "id": "update_rows",
+      "label": "updates to existing rows",
+      "verb": "Apply",
+      "description": "Changes the matching rows in place. Rows that do not match are not created.",
+      "params": [
+        { "id": "table", "label": "in the table", "type": "text", "placeholder": "which table?" },
+        { "id": "key", "label": "matched on", "type": "field", "placeholder": "which column?", "description": "The column that identifies the row, usually the ID or primary key." }
+      ]
+    }
+  ],
+  "guidance": "A database is reached over its native driver (Postgres, MySQL, SQL Server and so on) with a login made for the automation, normally against a read replica or a view rather than the primary. Name the schema, table and columns exactly as they appear in the database; some engines are case-sensitive and a wrong name fails only at run time. Ask for a read-only login for reading and a separate login limited to INSERT or UPDATE on the named tables for writing, and never reuse an application's own credentials.",
+  "setup": {
+    "notes": "The DBA or the team that owns the application knows which database, schema and login to use. They will usually want to see the exact query before granting access."
+  }
+}

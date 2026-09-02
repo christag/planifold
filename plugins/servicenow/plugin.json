@@ -1,0 +1,119 @@
+{
+  "id": "servicenow",
+  "name": "ServiceNow",
+  "version": "1.0.0",
+  "description": "Incidents, requests, knowledge articles and users in ServiceNow ITSM.",
+  "category": "IT & support",
+  "icon": "🛎️",
+  "website": "https://developer.servicenow.com/dev.do",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "incidents",
+      "label": "incidents",
+      "singular": "incident",
+      "description": "Records in the Incident table: something is broken or degraded.",
+      "timeField": "opened_at",
+      "fields": [
+        { "id": "number", "label": "number", "type": "string", "description": "The incident number, like INC0010042." },
+        { "id": "short_description", "label": "short description", "type": "string" },
+        { "id": "state", "label": "state", "type": "enum", "values": ["New", "In Progress", "On Hold", "Resolved", "Closed", "Canceled"] },
+        { "id": "priority", "label": "priority", "type": "enum", "values": ["1 - Critical", "2 - High", "3 - Moderate", "4 - Low", "5 - Planning"], "description": "Calculated from impact and urgency; you cannot set it directly." },
+        { "id": "category", "label": "category", "type": "string", "description": "Values depend on the instance. Hardware, Software, Network and Inquiry are common." },
+        { "id": "assignment_group", "label": "assignment group", "type": "string" },
+        { "id": "assigned_to", "label": "assigned to", "type": "person" },
+        { "id": "caller", "label": "caller", "type": "person", "description": "The person affected, not necessarily who reported it." },
+        { "id": "opened_at", "label": "opened", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "requests",
+      "label": "requests",
+      "singular": "request",
+      "description": "Service catalog requests and the items requested in them.",
+      "timeField": "opened_at",
+      "fields": [
+        { "id": "number", "label": "number", "type": "string", "description": "A REQ number for the request or a RITM number for an item in it." },
+        { "id": "item", "label": "catalog item", "type": "string", "description": "What was ordered, like New laptop or VPN access." },
+        { "id": "state", "label": "state", "type": "enum", "values": ["Pending Approval", "Open", "Work in Progress", "Closed Complete", "Closed Incomplete", "Closed Cancelled"] },
+        { "id": "approval", "label": "approval", "type": "enum", "values": ["Not Yet Requested", "Requested", "Approved", "Rejected"] },
+        { "id": "requested_for", "label": "requested for", "type": "person" },
+        { "id": "assignment_group", "label": "assignment group", "type": "string" },
+        { "id": "opened_at", "label": "opened", "type": "datetime" },
+        { "id": "due_date", "label": "due date", "type": "date" }
+      ]
+    },
+    {
+      "id": "knowledge_articles",
+      "label": "knowledge articles",
+      "singular": "knowledge article",
+      "description": "Articles in a knowledge base, published or not.",
+      "timeField": "updated",
+      "fields": [
+        { "id": "number", "label": "number", "type": "string", "description": "The article number, like KB0012345." },
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "text", "label": "body", "type": "text" },
+        { "id": "knowledge_base", "label": "knowledge base", "type": "string" },
+        { "id": "category", "label": "category", "type": "string" },
+        { "id": "workflow_state", "label": "state", "type": "enum", "values": ["Draft", "Review", "Published", "Retired"] },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "updated", "label": "last updated", "type": "datetime" },
+        { "id": "valid_to", "label": "valid until", "type": "date", "description": "Articles past this date are hidden from the portal." }
+      ]
+    },
+    {
+      "id": "users",
+      "label": "users",
+      "singular": "user",
+      "description": "People in the User table: employees, contractors and their reporting lines.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "department", "label": "department", "type": "string" },
+        { "id": "title", "label": "job title", "type": "string" },
+        { "id": "manager", "label": "manager", "type": "person" },
+        { "id": "location", "label": "location", "type": "string" },
+        { "id": "active", "label": "active", "type": "boolean", "description": "False for people who have left or been locked out." }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_incident",
+      "label": "an incident",
+      "pattern": "create",
+      "description": "One new incident per record, opened for the caller you name.",
+      "params": [
+        { "id": "caller", "label": "for the caller", "type": "text", "placeholder": "who is affected?" },
+        { "id": "assignment_group", "label": "assigned to the group", "type": "text", "placeholder": "group name", "optional": true },
+        { "id": "urgency", "label": "with urgency", "type": "enum", "values": ["1 - High", "2 - Medium", "3 - Low"], "optional": true, "description": "Priority is worked out from urgency and impact." },
+        { "id": "title_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true, "description": "The field that becomes the short description." }
+      ]
+    },
+    {
+      "id": "add_note",
+      "label": "a note on each record",
+      "verb": "Add",
+      "description": "Append to the incidents or requests in the source. Work notes stay internal; additional comments go to the caller.",
+      "params": [
+        { "id": "audience", "label": "visible to", "type": "enum", "values": ["agents only (work note)", "the caller too (additional comment)"], "optional": true, "description": "Defaults to a work note." }
+      ]
+    },
+    {
+      "id": "update_state",
+      "label": "a state change",
+      "verb": "Apply",
+      "description": "Move the incidents in the source to another state. Resolving needs a resolution note; closing is left to the service desk.",
+      "params": [
+        { "id": "state", "label": "to", "type": "enum", "values": ["In Progress", "On Hold", "Resolved"] },
+        { "id": "note", "label": "with the note", "type": "text", "placeholder": "resolution or reason", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "ServiceNow is reached through the Table REST API on the company's own instance (yourcompany.service-now.com), normally as a dedicated integration user with basic auth or OAuth and roles limited to the tables the plan touches. Every write is audited under that user and business rules fire exactly as they do in the UI, so a state change can send notifications or start approvals. Never close or cancel records automatically; set them to Resolved at most and let the service desk close them.",
+  "setup": {
+    "notes": "Ask the ServiceNow platform owner for an integration user with read access to the tables the plan names and write access only where it creates or updates. Most companies have an intake form for this and want to see the plan first.",
+    "docsUrl": "https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI"
+  }
+}

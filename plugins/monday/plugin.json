@@ -1,0 +1,91 @@
+{
+  "id": "monday",
+  "name": "Monday.com",
+  "version": "1.0.0",
+  "description": "Boards, items and updates in Monday.com work management.",
+  "category": "Work management",
+  "icon": "📋",
+  "website": "https://developer.monday.com",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "items",
+      "label": "items",
+      "singular": "item",
+      "description": "Rows on a board: tasks, deals, requests.",
+      "timeField": "updated_at",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "board", "label": "board", "type": "string" },
+        { "id": "group", "label": "group", "type": "string" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Not started", "Working on it", "Stuck", "Done"] },
+        { "id": "person", "label": "assigned person", "type": "person" },
+        { "id": "priority", "label": "priority", "type": "enum", "values": ["Critical", "High", "Medium", "Low"] },
+        { "id": "due_date", "label": "due date", "type": "date" },
+        { "id": "updated_at", "label": "last updated", "type": "datetime" },
+        { "id": "created_at", "label": "created", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "boards",
+      "label": "boards",
+      "singular": "board",
+      "description": "The boards in a workspace.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "workspace", "label": "workspace", "type": "string" },
+        { "id": "owner", "label": "owner", "type": "person" },
+        { "id": "item_count", "label": "number of items", "type": "number" }
+      ]
+    },
+    {
+      "id": "updates",
+      "label": "updates",
+      "singular": "update",
+      "description": "Comments posted on items.",
+      "timeField": "date",
+      "fields": [
+        { "id": "item", "label": "item", "type": "string" },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "date", "label": "posted", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_item",
+      "label": "an item",
+      "pattern": "create",
+      "description": "One new item per record.",
+      "params": [
+        { "id": "board", "label": "on the board", "type": "text", "placeholder": "board name" },
+        { "id": "group", "label": "in the group", "type": "text", "placeholder": "group name", "optional": true },
+        { "id": "name_from", "label": "named after", "type": "field", "placeholder": "which field?", "optional": true }
+      ]
+    },
+    {
+      "id": "set_status",
+      "label": "a status change",
+      "verb": "Apply",
+      "description": "Change the status of the items in the source.",
+      "params": [
+        { "id": "status", "label": "to", "type": "enum", "values": ["Not started", "Working on it", "Stuck", "Done"] }
+      ]
+    },
+    {
+      "id": "post_update",
+      "label": "an update on each item",
+      "verb": "Post",
+      "params": [
+        { "id": "mention", "label": "mentioning", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Monday.com exposes a GraphQL API keyed by board and column ids, so the plan must name the board exactly. Status and priority are column values that differ per board; confirm the exact labels with the board owner before building.",
+  "setup": {
+    "notes": "The board owner can generate an API token. Ask for one scoped to the boards named in the plan.",
+    "docsUrl": "https://developer.monday.com/api-reference"
+  }
+}

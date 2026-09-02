@@ -1,0 +1,170 @@
+{
+  "id": "core-transforms",
+  "name": "Core transformations",
+  "version": "1.0.0",
+  "description": "The standard ways to narrow, change, and combine information on its way through.",
+  "kind": "transforms",
+  "operations": [
+    {
+      "id": "filter",
+      "label": "keep only the ones where",
+      "category": "Narrow down",
+      "description": "Drop everything that doesn't match.",
+      "params": [{ "id": "condition", "label": "", "type": "condition" }],
+      "result": { "label": "the {source} that match", "fields": { "mode": "same" } }
+    },
+    {
+      "id": "dedupe",
+      "label": "remove duplicates",
+      "category": "Narrow down",
+      "params": [{ "id": "field", "label": "judged by", "type": "field", "placeholder": "which field?", "optional": true }],
+      "result": { "label": "{source} without duplicates", "fields": { "mode": "same" } }
+    },
+    {
+      "id": "top",
+      "label": "keep only the first",
+      "category": "Narrow down",
+      "params": [
+        { "id": "n", "label": "", "type": "number", "placeholder": "how many?" },
+        { "id": "field", "label": "ranked by", "type": "field", "placeholder": "which field?", "optional": true }
+      ],
+      "result": { "label": "the top {n} of {source}", "fields": { "mode": "same" } }
+    },
+    {
+      "id": "sort",
+      "label": "sort them by",
+      "category": "Narrow down",
+      "params": [
+        { "id": "field", "label": "", "type": "field", "placeholder": "which field?" },
+        { "id": "direction", "label": "", "type": "enum", "values": ["newest first", "oldest first", "A to Z", "Z to A", "highest first", "lowest first"] }
+      ],
+      "result": { "label": "{source} sorted by {field}", "fields": { "mode": "same" } }
+    },
+    {
+      "id": "pick_fields",
+      "label": "keep only these fields:",
+      "category": "Narrow down",
+      "params": [{ "id": "fields", "label": "", "type": "fields", "placeholder": "which field?" }],
+      "result": { "label": "{fields} from {source}", "fields": { "mode": "same", "pickFromParam": "fields" } }
+    },
+    {
+      "id": "summarize",
+      "label": "summarize each one",
+      "category": "Change each one",
+      "ai": true,
+      "params": [{ "id": "length", "label": "", "type": "enum", "values": ["in one line", "in a short paragraph", "as three bullet points"] }],
+      "result": { "label": "summaries of {source}", "fields": { "mode": "extend", "fields": [{ "id": "summary", "label": "summary", "type": "text" }] } }
+    },
+    {
+      "id": "rewrite",
+      "label": "rewrite each one to be",
+      "category": "Change each one",
+      "ai": true,
+      "params": [{ "id": "style", "label": "", "type": "enum", "values": ["shorter", "more formal", "more casual", "clear for a non-technical reader", "a friendly note"] }],
+      "result": { "label": "rewritten {source}", "fields": { "mode": "extend", "fields": [{ "id": "rewritten_text", "label": "rewritten text", "type": "text" }] } }
+    },
+    {
+      "id": "translate",
+      "label": "translate each one into",
+      "category": "Change each one",
+      "ai": true,
+      "params": [{ "id": "language", "label": "", "type": "text", "placeholder": "which language?" }],
+      "result": { "label": "{source} in {language}", "fields": { "mode": "extend", "fields": [{ "id": "translated_text", "label": "translated text", "type": "text" }] } }
+    },
+    {
+      "id": "extract",
+      "label": "pull out",
+      "category": "Change each one",
+      "ai": true,
+      "description": "Read each item and pick out specific things, like the recipe name or the amount.",
+      "params": [{ "id": "items", "label": "", "type": "texts", "placeholder": "what? e.g. the recipe name", "suffix": "from each one" }],
+      "result": { "label": "{items} from {source}", "fields": { "mode": "extend", "fromParam": "items" } }
+    },
+    {
+      "id": "classify",
+      "label": "sort each one into one of:",
+      "category": "Change each one",
+      "ai": true,
+      "params": [{ "id": "categories", "label": "", "type": "texts", "placeholder": "a category" }],
+      "result": { "label": "{source}, labeled", "fields": { "mode": "extend", "enumFromParam": { "param": "categories", "fieldId": "category", "label": "category" } } }
+    },
+    {
+      "id": "decide",
+      "label": "decide for each one whether",
+      "category": "Change each one",
+      "ai": true,
+      "description": "A yes/no judgement you can filter on afterwards.",
+      "params": [{ "id": "question", "label": "", "type": "text", "placeholder": "e.g. it is actually about a recipe" }],
+      "result": {
+        "label": "{source} with a yes/no on “{question}”",
+        "fields": { "mode": "extend", "fields": [{ "id": "decision", "label": "decision", "type": "enum", "values": ["yes", "no"] }, { "id": "reason", "label": "reason", "type": "text" }] }
+      }
+    },
+    {
+      "id": "template",
+      "label": "write each one out as",
+      "category": "Change each one",
+      "description": "A fixed shape with fields dropped in, like “{name} — {status}”.",
+      "params": [{ "id": "template", "label": "", "type": "text", "placeholder": "e.g. {name} is {status}" }],
+      "result": { "label": "{source} written out", "fields": { "mode": "extend", "fields": [{ "id": "text", "label": "text", "type": "text" }] } }
+    },
+    {
+      "id": "ask_ai",
+      "label": "ask AI to",
+      "category": "Change each one",
+      "ai": true,
+      "description": "Anything else, spelled out precisely. Vague instructions make vague automations.",
+      "params": [{ "id": "instruction", "label": "", "type": "text", "placeholder": "do what, exactly?", "suffix": "for each one" }],
+      "result": { "label": "{source} after “{instruction}”", "fields": { "mode": "extend", "fields": [{ "id": "ai_result", "label": "AI result", "type": "text" }] } }
+    },
+    {
+      "id": "combine",
+      "label": "combine with",
+      "category": "Combine",
+      "description": "Join two pieces on a matching value.",
+      "params": [
+        { "id": "other", "label": "", "type": "ref", "placeholder": "another piece" },
+        { "id": "field", "label": "matching", "type": "field", "placeholder": "which field here?" },
+        { "id": "other_field", "label": "to", "type": "text", "placeholder": "which field there?" }
+      ],
+      "result": { "label": "{source} combined with {other}", "fields": { "mode": "same", "withRef": "other" } }
+    },
+    {
+      "id": "summarize_all",
+      "label": "summarize all of them together",
+      "category": "Combine",
+      "ai": true,
+      "params": [{ "id": "length", "label": "", "type": "enum", "values": ["in one paragraph", "in a short report", "as a bullet list"] }],
+      "result": { "label": "a summary of {source}", "fields": { "mode": "replace", "fields": [{ "id": "summary", "label": "summary", "type": "text" }] } }
+    },
+    {
+      "id": "group",
+      "label": "group them by",
+      "category": "Combine",
+      "params": [{ "id": "field", "label": "", "type": "field", "placeholder": "which field?" }],
+      "result": { "label": "{source} grouped by {field}", "fields": { "mode": "replace", "fields": [{ "id": "group", "label": "group", "type": "string" }, { "id": "count", "label": "count", "type": "number" }] } }
+    },
+    {
+      "id": "count",
+      "label": "count them",
+      "category": "Combine",
+      "params": [{ "id": "field", "label": "per", "type": "field", "placeholder": "which field?", "optional": true }],
+      "result": { "label": "the count of {source}", "fields": { "mode": "replace", "fields": [{ "id": "count", "label": "count", "type": "number" }, { "id": "group", "label": "group", "type": "string" }] } }
+    },
+    {
+      "id": "table",
+      "label": "turn them into a table with the columns",
+      "category": "Combine",
+      "params": [{ "id": "columns", "label": "", "type": "fields", "placeholder": "which field?" }],
+      "result": { "label": "a table of {source}", "fields": { "mode": "same", "pickFromParam": "columns" } }
+    },
+    {
+      "id": "convert",
+      "label": "convert them into",
+      "category": "Combine",
+      "params": [{ "id": "format", "label": "", "type": "enum", "values": ["a PDF", "a CSV file", "a Markdown document", "a Word document", "a JSON file", "plain text"] }],
+      "result": { "label": "{source} as {format}", "fields": { "mode": "none" } }
+    }
+  ],
+  "guidance": "Steps marked as AI steps need a language model when built; everything else is plain data handling. Keep AI steps as narrow as possible and put the exact instruction in the piece."
+}

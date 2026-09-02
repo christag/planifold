@@ -1,0 +1,117 @@
+/*
+  Piecewise design tokens.
+  A sheet of paper, a fountain pen, and three inks: one per kind of piece.
+*/
+:root {
+  --paper: #f2f4f8;
+  --surface: #ffffff;
+  --surface-2: #f7f8fb;
+  --surface-3: #eceff5;
+  --ink: #171a21;
+  --muted: #5c6470;
+  --faint: #667080;
+  --line: #d8dde6;
+  --line-strong: #b9c1ce;
+
+  --pen: #1f4fd8;
+  --pen-strong: #183fb0;
+  --pen-tint: #e8eefc;
+  --pen-ring: rgba(31, 79, 216, 0.35);
+
+  --input: #0e8a6b;
+  --input-tint: #ddf3ec;
+  --transform: #b7700d;
+  --transform-tint: #fbefd9;
+  --output: #7b3fb6;
+  --output-tint: #efe4fa;
+
+  --danger: #c43d3d;
+  --danger-tint: #fbe4e4;
+  --warn: #b7700d;
+  --warn-tint: #fbefd9;
+  --ok: #0e8a6b;
+  --ok-tint: #ddf3ec;
+
+  --shadow-1: 0 1px 2px rgba(23, 26, 33, 0.06), 0 1px 1px rgba(23, 26, 33, 0.03);
+  --shadow-2: 0 2px 4px rgba(23, 26, 33, 0.06), 0 12px 32px -12px rgba(23, 26, 33, 0.22);
+  --shadow-3: 0 8px 16px rgba(23, 26, 33, 0.08), 0 24px 56px -16px rgba(23, 26, 33, 0.3);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+
+  --font-sentence: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --sentence-size: clamp(1.45rem, 1.1rem + 1.4vw, 2.1rem);
+  --topbar-h: 52px;
+  --rail-w: 272px;
+  --helper-w: 360px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 180ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121418;
+    --surface: #1a1d23;
+    --surface-2: #20242b;
+    --surface-3: #272c35;
+    --ink: #e8eaf0;
+    --muted: #9aa3b2;
+    --faint: #8590a0;
+    --line: #2b3039;
+    --line-strong: #3b4250;
+    --pen: #7d9dff;
+    --pen-strong: #a3b8ff;
+    --pen-tint: #1c2745;
+    --pen-ring: rgba(125, 157, 255, 0.4);
+    --input: #3fcba3;
+    --input-tint: #12332a;
+    --transform: #e8a54a;
+    --transform-tint: #3a2a10;
+    --output: #b98ce8;
+    --output-tint: #2e1f45;
+    --danger: #f07171;
+    --danger-tint: #3d1c1c;
+    --warn: #e8a54a;
+    --warn-tint: #3a2a10;
+    --ok: #3fcba3;
+    --ok-tint: #12332a;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+    --shadow-3: 0 8px 16px rgba(0, 0, 0, 0.4), 0 24px 56px -16px rgba(0, 0, 0, 0.8);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #121418;
+  --surface: #1a1d23;
+  --surface-2: #20242b;
+  --surface-3: #272c35;
+  --ink: #e8eaf0;
+  --muted: #9aa3b2;
+  --faint: #8590a0;
+  --line: #2b3039;
+  --line-strong: #3b4250;
+  --pen: #7d9dff;
+  --pen-strong: #a3b8ff;
+  --pen-tint: #1c2745;
+  --pen-ring: rgba(125, 157, 255, 0.4);
+  --input: #3fcba3;
+  --input-tint: #12332a;
+  --transform: #e8a54a;
+  --transform-tint: #3a2a10;
+  --output: #b98ce8;
+  --output-tint: #2e1f45;
+  --danger: #f07171;
+  --danger-tint: #3d1c1c;
+  --warn: #e8a54a;
+  --warn-tint: #3a2a10;
+  --ok: #3fcba3;
+  --ok-tint: #12332a;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+  --shadow-3: 0 8px 16px rgba(0, 0, 0, 0.4), 0 24px 56px -16px rgba(0, 0, 0, 0.8);
+}

@@ -1,0 +1,77 @@
+{
+  "id": "gmail",
+  "name": "Gmail",
+  "version": "1.0.0",
+  "description": "Google Workspace email, contacts and labels.",
+  "category": "Email & calendar",
+  "icon": "✉️",
+  "website": "https://developers.google.com/gmail/api",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "emails",
+      "label": "emails",
+      "singular": "email",
+      "description": "Messages in a mailbox, newest first.",
+      "timeField": "date",
+      "fields": [
+        { "id": "from", "label": "sender", "type": "email" },
+        { "id": "to", "label": "recipient", "type": "email" },
+        { "id": "subject", "label": "subject", "type": "string" },
+        { "id": "body", "label": "body", "type": "text" },
+        { "id": "date", "label": "date received", "type": "datetime" },
+        { "id": "label", "label": "label", "type": "string", "description": "A Gmail label such as Inbox, Starred, or one you made." },
+        { "id": "unread", "label": "unread", "type": "boolean" },
+        { "id": "attachment", "label": "attachment", "type": "attachment" }
+      ]
+    },
+    {
+      "id": "contacts",
+      "label": "contacts",
+      "singular": "contact",
+      "description": "People in the address book, including contact groups.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "email", "label": "email address", "type": "email" },
+        { "id": "group", "label": "contact group", "type": "string", "description": "A label on the contact, like Friends or Vendors." },
+        { "id": "company", "label": "company", "type": "string" }
+      ]
+    },
+    {
+      "id": "labels",
+      "label": "labels",
+      "singular": "label",
+      "description": "The mailbox's labels and how many messages each holds.",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "count", "label": "message count", "type": "number" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "send_email",
+      "label": "an email",
+      "description": "Send mail. Choose whether each item becomes its own message.",
+      "params": [
+        { "id": "to", "label": "to", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "description": "An address, several addresses, or a piece that holds people." },
+        { "id": "subject", "label": "with the subject", "type": "text", "placeholder": "subject line", "optional": true },
+        { "id": "grouping", "label": "sent as", "type": "enum", "values": ["one email per item", "one email with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "create_draft",
+      "label": "a draft",
+      "description": "Nothing is sent. A person reviews and sends by hand.",
+      "params": [
+        { "id": "to", "label": "addressed to", "type": "ref-or-text", "placeholder": "who?", "refLabel": "each person in {piece}", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Gmail is reached through the Google Workspace API, normally as a service account with domain-wide delegation or as a specific mailbox owner. Sending to many people means one message per person; never put a whole list in To or Cc. Mailbox contents are sensitive: read only the labels or searches the plan names, and prefer a draft over a send when a person should review first.",
+  "setup": {
+    "notes": "Ask the Google Workspace administrator for API access to the mailbox this will run as. Automations run as that account, not as the person planning.",
+    "docsUrl": "https://developers.google.com/gmail/api/guides"
+  }
+}

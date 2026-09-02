@@ -1,0 +1,92 @@
+{
+  "id": "bamboohr",
+  "name": "BambooHR",
+  "version": "1.0.0",
+  "description": "Employees, time off and onboarding tasks in BambooHR.",
+  "category": "HR",
+  "icon": "🎋",
+  "website": "https://documentation.bamboohr.com",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "employees",
+      "label": "employees",
+      "singular": "employee",
+      "description": "People in the employee directory, current and former.",
+      "timeField": "hire_date",
+      "fields": [
+        { "id": "name", "label": "name", "type": "string" },
+        { "id": "employee_id", "label": "employee ID", "type": "string", "description": "The number BambooHR assigns. Every write needs it, so keep it when matching people." },
+        { "id": "work_email", "label": "work email", "type": "email" },
+        { "id": "job_title", "label": "job title", "type": "string" },
+        { "id": "department", "label": "department", "type": "string" },
+        { "id": "location", "label": "location", "type": "string" },
+        { "id": "manager", "label": "manager", "type": "person" },
+        { "id": "status", "label": "employment status", "type": "enum", "values": ["Active", "Inactive"], "description": "Active is currently employed. Inactive covers terminated and former employees." },
+        { "id": "hire_date", "label": "hire date", "type": "date" }
+      ]
+    },
+    {
+      "id": "time_off_requests",
+      "label": "time-off requests",
+      "singular": "time-off request",
+      "description": "Requests for time away and whether they were approved.",
+      "timeField": "requested_on",
+      "fields": [
+        { "id": "employee", "label": "employee", "type": "person" },
+        { "id": "type", "label": "type", "type": "enum", "values": ["Vacation", "Sick", "Personal", "Bereavement", "Jury Duty"], "description": "Time-off types are set per company; these are the common defaults." },
+        { "id": "start_date", "label": "first day", "type": "date" },
+        { "id": "end_date", "label": "last day", "type": "date" },
+        { "id": "days", "label": "days requested", "type": "number" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Requested", "Approved", "Denied", "Cancelled"] },
+        { "id": "note", "label": "note", "type": "text" },
+        { "id": "requested_on", "label": "requested", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "onboarding_tasks",
+      "label": "onboarding tasks",
+      "singular": "onboarding task",
+      "description": "Checklist items for a new hire, such as set up a laptop or send the welcome pack.",
+      "timeField": "due_date",
+      "fields": [
+        { "id": "title", "label": "task", "type": "string" },
+        { "id": "new_hire", "label": "new hire", "type": "person" },
+        { "id": "assigned_to", "label": "assigned to", "type": "person", "description": "The person who has to do the task, often someone in IT or the manager." },
+        { "id": "category", "label": "category", "type": "string", "description": "The task list the item belongs to, such as IT or Payroll." },
+        { "id": "due_date", "label": "due date", "type": "date" },
+        { "id": "completed", "label": "completed", "type": "boolean" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_time_off_request",
+      "label": "a time-off request",
+      "pattern": "create",
+      "description": "Files a request as if the employee had. It still goes to their manager for approval.",
+      "params": [
+        { "id": "employee", "label": "for", "type": "ref-or-text", "placeholder": "which employee?", "refLabel": "each person in {piece}", "description": "An employee's name or work email, or a piece that holds people." },
+        { "id": "type", "label": "of the type", "type": "text", "placeholder": "e.g. Vacation" },
+        { "id": "start_date", "label": "from", "type": "date" },
+        { "id": "end_date", "label": "to", "type": "date" },
+        { "id": "note", "label": "with the note", "type": "text", "placeholder": "why?", "optional": true }
+      ]
+    },
+    {
+      "id": "add_note",
+      "label": "a note",
+      "verb": "Add",
+      "description": "A note on the employee's record, visible to HR and the manager. Nothing else changes.",
+      "params": [
+        { "id": "employee", "label": "on", "type": "ref-or-text", "placeholder": "which employee?", "refLabel": "each person in {piece}", "description": "An employee's name or work email, or a piece that holds people." }
+      ]
+    }
+  ],
+  "guidance": "BambooHR is reached through its REST API at the company's own subdomain with an API key that belongs to one user, so the automation can see exactly what that user can see. Pull several fields at once with a custom report rather than one call per employee, and note that field names are internal aliases or numeric IDs, not the labels on screen. Read only the fields the plan names and keep personal data such as pay, home address and dates of birth out of it. Writes are limited on purpose: time-off requests and notes are safe, but hiring, terminating or changing pay should stay a human action in BambooHR.",
+  "setup": {
+    "notes": "The BambooHR administrator in HR can create an API key. Ask for one from an account with access limited to the employees and fields in the plan.",
+    "docsUrl": "https://documentation.bamboohr.com/reference"
+  }
+}

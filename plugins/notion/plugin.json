@@ -1,0 +1,99 @@
+{
+  "id": "notion",
+  "name": "Notion",
+  "version": "1.0.0",
+  "description": "Pages, database rows and comments in a Notion workspace.",
+  "category": "Docs & wikis",
+  "icon": "📓",
+  "website": "https://developers.notion.com",
+  "kind": "integration",
+  "roles": ["input", "output"],
+  "objects": [
+    {
+      "id": "pages",
+      "label": "pages",
+      "singular": "page",
+      "description": "Pages the integration has been shared with, including their text.",
+      "timeField": "last_edited",
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "content", "label": "content", "type": "text", "description": "The page body as plain text." },
+        { "id": "parent", "label": "parent", "type": "string", "description": "The page or database this page lives under." },
+        { "id": "created_by", "label": "created by", "type": "person" },
+        { "id": "last_edited_by", "label": "last edited by", "type": "person" },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "last_edited", "label": "last edited", "type": "datetime" },
+        { "id": "url", "label": "link", "type": "url" }
+      ]
+    },
+    {
+      "id": "rows",
+      "label": "database rows",
+      "singular": "database row",
+      "description": "Rows in a database. Filter by any property name.",
+      "allowCustomFields": true,
+      "qualifier": { "label": "in the database", "placeholder": "which database?" },
+      "timeField": "last_edited",
+      "fields": [
+        { "id": "title", "label": "title", "type": "string" },
+        { "id": "status", "label": "status", "type": "enum", "values": ["Not started", "In progress", "Done"], "description": "Notion's built-in Status property; a database may have its own options." },
+        { "id": "person", "label": "person", "type": "person", "description": "A Person property such as Assignee or Owner." },
+        { "id": "date", "label": "date", "type": "date" },
+        { "id": "tags", "label": "tag", "type": "string", "description": "A Select or Multi-select property." },
+        { "id": "created", "label": "created", "type": "datetime" },
+        { "id": "last_edited", "label": "last edited", "type": "datetime" }
+      ]
+    },
+    {
+      "id": "comments",
+      "label": "comments",
+      "singular": "comment",
+      "description": "Comments on pages and database rows, including replies in a discussion.",
+      "timeField": "created",
+      "fields": [
+        { "id": "page", "label": "page", "type": "string" },
+        { "id": "author", "label": "author", "type": "person" },
+        { "id": "text", "label": "text", "type": "text" },
+        { "id": "created", "label": "posted", "type": "datetime" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "create_row",
+      "label": "a database row",
+      "pattern": "create",
+      "description": "One new row per record. Properties are matched to the database's columns by name.",
+      "params": [
+        { "id": "database", "label": "in the database", "type": "text", "placeholder": "database name" },
+        { "id": "title_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true },
+        { "id": "status", "label": "with the status", "type": "text", "placeholder": "status name", "optional": true }
+      ]
+    },
+    {
+      "id": "create_page",
+      "label": "a page",
+      "pattern": "create",
+      "description": "A new page under a parent page, either one per record or one for everything.",
+      "params": [
+        { "id": "parent", "label": "under the page", "type": "text", "placeholder": "parent page title" },
+        { "id": "title_from", "label": "titled with", "type": "field", "placeholder": "which field?", "optional": true },
+        { "id": "grouping", "label": "made as", "type": "enum", "values": ["one page per item", "one page with everything"], "optional": true }
+      ]
+    },
+    {
+      "id": "add_comment",
+      "label": "a comment on each page",
+      "verb": "Post",
+      "description": "Comment on the pages or rows in the source. Comments notify people who follow the page.",
+      "params": [
+        { "id": "mention", "label": "mentioning", "type": "text", "placeholder": "who?", "optional": true }
+      ]
+    }
+  ],
+  "guidance": "Notion is reached through the public API as an internal integration with a secret token; the integration sees nothing until a person shares each page or database with it from the page's Connections menu. Database properties are matched by name and type, so the plan should name the database and the properties it fills exactly as they appear. Prefer adding rows, pages and comments over editing existing page content, which the API can only replace block by block.",
+  "setup": {
+    "notes": "A workspace owner creates the internal integration at notion.so/my-integrations and then shares the pages or databases named in the plan with it.",
+    "docsUrl": "https://developers.notion.com/reference/intro"
+  }
+}
