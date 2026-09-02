@@ -1,5 +1,5 @@
 import type { Catalog } from "@piecewise/shared";
-import type { AuditEntry, AuthConfig, HandoffResponse, HelperMessage, HelperResult, HelperStatus, OrgSettings, Overview, Piece, Plan, PluginInfo, PluginProblem, Provider, SuggestedSlot, User } from "./types.js";
+import type { AuditEntry, AuthAdminInfo, AuthConfig, HandoffResponse, HelperMessage, HelperResult, HelperStatus, OrgSettings, Overview, Piece, Plan, PluginInfo, PluginProblem, Provider, ScimToken, SuggestedSlot, User } from "./types.js";
 
 export class ApiError extends Error {
   constructor(
@@ -101,6 +101,11 @@ export const api = {
       remove: (id: string) => del<{ ok: true }>(`/api/admin/providers/${id}`),
     },
     settings: (input: Partial<OrgSettings>) => patch<{ settings: OrgSettings }>("/api/admin/settings", input),
+    auth: () => get<AuthAdminInfo>("/api/admin/auth"),
+    scim: {
+      createToken: (label: string) => post<{ token: ScimToken; secret: string }>("/api/admin/scim/tokens", { label }),
+      revokeToken: (id: string) => del<{ ok: true }>(`/api/admin/scim/tokens/${id}`),
+    },
     plugins: {
       list: () => get<{ plugins: PluginInfo[]; problems: PluginProblem[] }>("/api/admin/plugins"),
       update: (id: string, input: { enabled?: boolean; ownerId?: string | null; guidance?: string | null; setupNotes?: string | null; overrides?: PluginInfo["overrides"] }) => patch<{ plugin: PluginInfo }>(`/api/admin/plugins/${id}`, input),

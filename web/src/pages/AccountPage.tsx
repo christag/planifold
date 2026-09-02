@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../lib/api.js";
-import { ROLE_LABEL } from "../lib/format.js";
+import { authSourceLabel, ROLE_LABEL } from "../lib/format.js";
 import { errorMessage, useApp, type Theme } from "../lib/store.js";
 import { Shell } from "../ui/Shell.js";
 import { Logo } from "../ui/primitives.js";
@@ -107,7 +107,7 @@ export function AccountPage() {
               <dt>Role</dt>
               <dd>{ROLE_LABEL[user.role]}</dd>
               <dt>Signs in with</dt>
-              <dd>{user.authSource === "local" ? "a password" : user.authSource === "oidc" ? "single sign-on" : "your network"}</dd>
+              <dd>{user.authSource === "local" ? "a password" : authSourceLabel(user.authSource)}</dd>
             </dl>
           </section>
           <section className="card pad stack">

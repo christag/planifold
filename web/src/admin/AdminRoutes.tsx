@@ -1,8 +1,9 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "../ui/Shell.js";
-import { Activity, Key, MessageSquare, Puzzle, Settings, Users } from "../ui/icons.js";
+import { Activity, Key, MessageSquare, Puzzle, Settings, Shield, Users } from "../ui/icons.js";
 import { AiAdmin } from "./AiAdmin.js";
 import { AuditAdmin } from "./AuditAdmin.js";
+import { AuthAdmin } from "./AuthAdmin.js";
 import { GuidanceAdmin } from "./GuidanceAdmin.js";
 import { OverviewAdmin } from "./OverviewAdmin.js";
 import { PluginsAdmin } from "./PluginsAdmin.js";
@@ -14,6 +15,7 @@ const NAV = [
   { to: "/admin/integrations", label: "Integrations", icon: Puzzle },
   { to: "/admin/guidance", label: "Guidance", icon: MessageSquare },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/sign-in", label: "Sign-in", icon: Shield },
   { to: "/admin/audit", label: "Audit log", icon: Activity },
 ];
 
@@ -35,6 +37,7 @@ export function AdminRoutes() {
             <Route path="integrations" element={<PluginsAdmin />} />
             <Route path="guidance" element={<GuidanceAdmin />} />
             <Route path="users" element={<UsersAdmin />} />
+            <Route path="sign-in" element={<AuthAdmin />} />
             <Route path="audit" element={<AuditAdmin />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>

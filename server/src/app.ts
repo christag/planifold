@@ -1,3 +1,4 @@
+import fastifyFormbody from "@fastify/formbody";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -8,8 +9,10 @@ import { adminRoutes } from "./admin/routes.js";
 import { authPlugin } from "./auth/plugin.js";
 import { authRoutes } from "./auth/routes.js";
 import { Oidc } from "./auth/oidc.js";
+import { Saml } from "./auth/saml.js";
 import { createUser, countUsers, findUserByEmail } from "./auth/users.js";
-import { purgeExpiredSessions } from "./auth/session.js";
+import { purgeExpiredSessions, purgeSessionsNotVia } from "./auth/session.js";
+import { scimRoutes } from "./scim/routes.js";
 import { VERSION, type Config } from "./config.js";
 import { SecretBox } from "./crypto.js";
 import { openDatabase, type Db } from "./db/index.js";
@@ -35,6 +38,7 @@ export interface AppContext {
   box: SecretBox;
   helper: HelperService;
   oidc: Oidc;
+  saml: Saml;
 }
 
 export async function buildApp(config: Config): Promise<FastifyInstance> {
@@ -59,11 +63,18 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   const box = new SecretBox(config.appSecret);
   const helper = new HelperService(db, registry, box, settings, app.log);
   const oidc = new Oidc(db, config);
-  const ctx: AppContext = { config, db, settings, registry, box, helper, oidc };
+  const saml = new Saml(db, config);
+  const ctx: AppContext = { config, db, settings, registry, box, helper, oidc, saml };
   app.decorate("ctx", ctx);
 
   bootstrap(db, config, app);
   purgeExpiredSessions(db);
+  if (config.auth.saml?.enforce) {
+    // Enforcement takes effect at once: sessions that came through a password,
+    // OIDC, or an earlier release have to be re-established through SAML.
+    const ended = purgeSessionsNotVia(db, "saml");
+    if (ended) app.log.info({ ended }, "SAML is enforced; ended sessions that did not come through SAML");
+  }
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof HttpError) return reply.code(err.status).send({ error: err.code ?? "error", message: err.message });
@@ -93,6 +104,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   });
 
   await app.register(fastifyRateLimit, { max: 600, timeWindow: "1 minute", allowList: () => config.env === "test" });
+  await app.register(fastifyFormbody); // the SAML assertion consumer receives a form post
   await app.register(authPlugin, { db, config });
 
   app.get("/api/health", async () => ({
@@ -103,11 +115,12 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
     helper: helper.status(),
   }));
 
-  await app.register(authRoutes, { db, config, oidc, settings });
+  await app.register(authRoutes, { db, config, oidc, saml, settings });
   await app.register(plansRoutes, { ctx });
   await app.register(helperRoutes, { ctx });
   await app.register(integrationRoutes, { ctx });
   await app.register(adminRoutes, { ctx });
+  await app.register(scimRoutes, { ctx });
 
   app.get("/api/*", async () => {
     throw new HttpError(404, "No such endpoint.", "not_found");

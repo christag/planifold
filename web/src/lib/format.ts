@@ -23,6 +23,24 @@ export const ROLE_LABEL: Record<string, string> = {
   app_admin: "App admin",
 };
 
+/** How an account signs in, by `authSource`, as a short noun phrase. */
+export function authSourceLabel(source: string): string {
+  switch (source) {
+    case "local":
+      return "password";
+    case "oidc":
+      return "single sign-on (OpenID Connect)";
+    case "saml":
+      return "single sign-on (SAML)";
+    case "scim":
+      return "single sign-on (provisioned, not yet signed in)";
+    case "trusted-header":
+      return "the network";
+    default:
+      return source;
+  }
+}
+
 export function download(filename: string, text: string, type = "text/plain") {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);

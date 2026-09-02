@@ -32,7 +32,8 @@ Other scripts:
 | `shared/src/handoff.ts` | Renders a plan as Markdown and JSON |
 | `server/src/config.ts` | Environment variables and defaults |
 | `server/src/app.ts` | Fastify app: routes, headers, static files |
-| `server/src/auth/` | Local passwords, cookie sessions, OIDC, trusted-header sign-in |
+| `server/src/auth/` | Local passwords, cookie sessions, OIDC, SAML, trusted-header sign-in |
+| `server/src/scim/` | SCIM 2.0 provisioning: bearer tokens, filters, Users and Groups endpoints |
 | `server/src/plans/`, `server/src/helper/`, `server/src/admin/` | The API |
 | `server/src/helper/providers/` | Anthropic and OpenAI-compatible providers; `fallback.ts` is the rule-based mode |
 | `server/src/db/` | `better-sqlite3` and append-only migrations |
@@ -43,7 +44,7 @@ Other scripts:
 
 ## Tests
 
-Unit tests use vitest in `shared/test` (grammar and handoff) and `server/test` (auth, OIDC, plans, helper). The server tests build the app in memory with a temporary data directory (`server/test/helpers.ts`) and drive it with `app.inject`, so no server needs to be running.
+Unit tests use vitest in `shared/test` (grammar and handoff) and `server/test` (auth, OIDC, SAML, SCIM, plans, helper). The server tests build the app in memory with a temporary data directory (`server/test/helpers.ts`) and drive it with `app.inject`, so no server needs to be running. The SAML tests generate a throwaway certificate with `selfsigned` and sign responses with `xml-crypto`, so no identity provider is needed either.
 
 ```sh
 npm test                       # both workspaces

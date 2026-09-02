@@ -6,7 +6,7 @@ Piecewise is one Node.js process with one SQLite file. There is no database serv
 
 - Container: nothing beyond Podman or Docker. The image is based on `node:22-bookworm-slim` and runs as the unprivileged `node` user.
 - From source: Node.js 22 or newer (`engines.node >= 22` in `package.json`) and npm. `better-sqlite3` is a native module; `npm ci` builds or downloads it.
-- Outbound HTTPS from the server to your model provider (Anthropic, OpenAI, or an OpenAI-compatible server) if you configure one, and to your OpenID Connect issuer if you use single sign-on. With no provider configured the helper runs in a limited rule-based mode.
+- Outbound HTTPS from the server to your model provider (Anthropic, OpenAI, or an OpenAI-compatible server) if you configure one, and to your OpenID Connect issuer if you use OIDC single sign-on. SAML single sign-on needs no outbound connection (the browser carries the messages). SCIM provisioning is inbound: the identity provider must be able to reach `BASE_URL`. With no provider configured the helper runs in a limited rule-based mode.
 - A reverse proxy for TLS. Piecewise serves plain HTTP only.
 - One host. Storage is a SQLite file in WAL mode on local disk. Do not run more than one instance against the same file, and do not put the file on a network share.
 - Piecewise must be served at the root of a hostname. Routes are fixed at `/` and `/api/`; there is no path-prefix setting.
@@ -62,6 +62,11 @@ services:
       OIDC_ISSUER: ${OIDC_ISSUER:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      SAML_IDP_SSO_URL: ${SAML_IDP_SSO_URL:-}
+      SAML_IDP_ISSUER: ${SAML_IDP_ISSUER:-}
+      SAML_IDP_CERT: ${SAML_IDP_CERT:-}
+      SAML_ADMIN_EMAILS: ${SAML_ADMIN_EMAILS:-}
+      SAML_ENFORCE: ${SAML_ENFORCE:-false}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     volumes:
       - piecewise-data:/data
@@ -78,7 +83,7 @@ Copy `.env.example` to `.env`, set at least `APP_SECRET`, then:
 podman compose up -d      # or: docker compose up -d
 ```
 
-The file names both `build: .` and the published image. `up` uses a local image if one exists and builds otherwise; `podman compose pull` fetches the published one. The `.env` file is read by compose only; variables not listed under `environment:` (for example `OIDC_ADMIN_EMAILS`) have to be added there before the container sees them.
+The file names both `build: .` and the published image. `up` uses a local image if one exists and builds otherwise; `podman compose pull` fetches the published one. The `.env` file is read by compose only; variables not listed under `environment:` (for example `OIDC_ADMIN_EMAILS` or `SAML_ADMIN_GROUPS`) have to be added there before the container sees them. A multi-line certificate in `.env` is easiest written on one line with `\n` between the lines; the server unescapes it.
 
 ## Podman Quadlet
 
@@ -180,11 +185,26 @@ All values come from `server/src/config.ts`. Empty strings count as unset. Boole
 | `AUTH_TRUSTED_NAME_HEADER` | unset | Header carrying the display name. Without it the part of the email before `@` is used. |
 | `AUTH_TRUSTED_PROXY_TOKEN` | unset | If set, headers are honored only when the request carries `X-Piecewise-Proxy-Token` with exactly this value. |
 | `AUTH_TRUSTED_DEFAULT_ROLE` | `user` | Role for accounts created by trusted-header sign-in. |
+| `SAML_IDP_SSO_URL` | unset | The identity provider's single sign-on URL. Setting any of the three `SAML_IDP_*` values turns SAML on; all three are then required. |
+| `SAML_IDP_ISSUER` | unset | The identity provider's entity id (Okta calls it "Identity Provider Issuer"). Responses from any other issuer are refused. |
+| `SAML_IDP_CERT` | unset | The identity provider's X.509 signing certificate, PEM or bare base64. Several PEM blocks may be concatenated during a key rotation. `SAML_IDP_CERT_FILE` reads it from a file instead. |
+| `SAML_SP_ENTITY_ID` | `<BASE_URL>/api/auth/saml/metadata` | This service provider's entity id, also used as the expected audience. |
+| `SAML_SP_PRIVATE_KEY`, `SAML_SP_CERT` | unset | Optional key pair (PEM; `_FILE` variants exist) for signing authentication requests and decrypting encrypted assertions. Both or neither. |
+| `SAML_NAMEID_FORMAT` | unset | NameID format to ask for. Unset lets the identity provider choose. |
+| `SAML_WANT_RESPONSE_SIGNED` | `true` | Require a signature on the whole response as well as on the assertion (Okta signs both by default). |
+| `SAML_ALLOW_IDP_INITIATED` | `false` | Accept responses that did not answer a request from Piecewise, so people can start from the identity provider's dashboard. |
+| `SAML_CLOCK_SKEW_SECONDS` | `120` | Tolerance when checking assertion validity times. |
+| `SAML_BUTTON_LABEL` | `Sign in with SAML single sign-on` | Text on the sign-in button. |
+| `SAML_DEFAULT_ROLE` | `user` | Role for accounts created by SAML sign-in or SCIM. |
+| `SAML_ADMIN_EMAILS` | unset | Comma-separated, case-insensitive. These emails become `app_admin` when their account is created by SAML or SCIM, or on the first SAML sign-in of a SCIM-provisioned account. |
+| `SAML_ADMIN_GROUPS` | unset | Comma-separated group names. A person whose `groups` attribute names one of them becomes `app_admin` at the same moments. |
+| `SAML_ATTR_EMAIL`, `SAML_ATTR_NAME`, `SAML_ATTR_FIRST_NAME`, `SAML_ATTR_LAST_NAME`, `SAML_ATTR_GROUPS` | `email`, `name`, `firstName`, `lastName`, `groups` | Names of the assertion attributes to read. |
+| `SAML_ENFORCE` | `false` | Make SAML the only way in: password, OIDC, and trusted-header sign-in are turned off, `/setup` is closed, and sessions that did not come through SAML are ended. |
 | `BOOTSTRAP_ADMIN_EMAIL` | unset | First administrator, created only when there are no users. |
 | `BOOTSTRAP_ADMIN_PASSWORD` | unset | At least 10 characters, or the bootstrap is skipped. |
 | `BOOTSTRAP_ADMIN_NAME` | `Administrator` | Display name for the bootstrap account. |
 
-Startup fails with an error in two cases: `OIDC_ISSUER` without `OIDC_CLIENT_ID`, and `OIDC_ISSUER` without a valid `BASE_URL`.
+Startup fails with an error when: `OIDC_ISSUER` is set without `OIDC_CLIENT_ID`; OIDC or SAML is configured without a valid `BASE_URL`; only some of `SAML_IDP_SSO_URL`, `SAML_IDP_ISSUER`, `SAML_IDP_CERT` are set; `SAML_SP_PRIVATE_KEY` and `SAML_SP_CERT` are not set together; a `_FILE` variable points at a missing file; or `SAML_ENFORCE` is set without SAML configured.
 
 ## Single sign-on (OpenID Connect)
 
@@ -229,6 +249,117 @@ Provider notes, in generic terms. Take the exact issuer from the provider's own 
 
 An `http://` issuer is accepted (insecure requests are enabled for it) so you can test against a local mock. The OIDC flow is covered by automated tests against `oauth2-mock-server` (`server/test/oidc.test.ts`); it has not been verified against any specific vendor.
 
+## Single sign-on (SAML 2.0)
+
+Piecewise is a SAML 2.0 service provider through `@node-saml/node-saml`: HTTP-Redirect binding for the authentication request, HTTP-POST binding for the response, signed assertions required, response signature required by default, audience and issuer checked, and every response must answer a request Piecewise issued unless `SAML_ALLOW_IDP_INITIATED` is on. The configuration below is written for Okta; any SAML 2.0 identity provider that can send an email attribute works the same way.
+
+### Okta setup
+
+1. In Okta Admin, go to Applications → Create App Integration → SAML 2.0.
+2. General settings: any name, for example "Piecewise".
+3. SAML settings:
+
+   | Okta field | Value |
+   |---|---|
+   | Single sign-on URL | `<BASE_URL>/api/auth/saml/callback` (leave "Use this for Recipient URL and Destination URL" checked) |
+   | Audience URI (SP Entity ID) | `<BASE_URL>/api/auth/saml/metadata` (or whatever you put in `SAML_SP_ENTITY_ID`) |
+   | Default RelayState | empty, or a path such as `/` (only used with `SAML_ALLOW_IDP_INITIATED`) |
+   | Name ID format | Unspecified or EmailAddress; Persistent also works |
+   | Application username | Okta username (or Email) |
+
+   Attribute statements (name → value): `email` → `user.email`, `firstName` → `user.firstName`, `lastName` → `user.lastName`. Optionally a group attribute statement named `groups` with a filter that matches the groups you want Piecewise to see (for `SAML_ADMIN_GROUPS`). The names are configurable with `SAML_ATTR_*` if your organization already uses others.
+
+4. Finish, then open the app's Sign On tab and click "View SAML setup instructions" (or "More details"). Copy the three values into the environment:
+
+   ```sh
+   BASE_URL=https://piecewise.example.com
+   SAML_IDP_SSO_URL=https://your-org.okta.com/app/…/sso/saml     # "Identity Provider Single Sign-On URL"
+   SAML_IDP_ISSUER=http://www.okta.com/exk…                        # "Identity Provider Issuer"
+   SAML_IDP_CERT_FILE=/etc/piecewise/okta.pem                     # "X.509 Certificate", or inline as SAML_IDP_CERT
+   SAML_ADMIN_EMAILS=you@example.com
+   ```
+
+5. Assign people or groups to the app in Okta, restart Piecewise, and check Admin → Sign-in: it shows the ACS URL, entity id, and metadata URL to compare against Okta. The sign-in page now has a button labeled by `SAML_BUTTON_LABEL`; it links to `/api/auth/saml/start`. Service-provider metadata is served at `/api/auth/saml/metadata` for identity providers that can import it.
+
+Okta signs both the response and the assertion by default; keep it that way. If you enable assertion encryption in Okta, give Piecewise a key pair with `SAML_SP_PRIVATE_KEY_FILE` and `SAML_SP_CERT_FILE`, upload the certificate to Okta as the encryption certificate; the same pair also signs Piecewise's requests, which Okta accepts but does not require.
+
+### How identities map to accounts
+
+- The email comes from the attribute named by `SAML_ATTR_EMAIL` (`email`), falling back to the NameID when it looks like an email address. Without one, sign-in fails with a message naming the attribute to add. The display name is `SAML_ATTR_NAME`, else first and last name joined, else the part of the email before `@`.
+- Identity is the NameID, stored on the account (`users.saml_name_id`). On the first sign-in of a NameID, the server looks for an account provisioned by SCIM whose external id equals the NameID (Okta can send `user.id` as both), then for an account with the same email (case-insensitive), and links it. An account already linked to a different NameID refuses the new one. Otherwise a new account is created: `app_admin` if the email is in `SAML_ADMIN_EMAILS` or a `groups` value is in `SAML_ADMIN_GROUPS`, else `SAML_DEFAULT_ROLE`.
+- Roles are decided when an account is created, and once more on the first SAML sign-in of an account that SCIM provisioned (upwards only, so that an administrator listed in `SAML_ADMIN_EMAILS` still becomes one when Okta created the account first). Later sign-ins never change roles; change them in Admin → Users. Group membership sent in assertions is not stored.
+- A disabled account is refused at the callback.
+- Flow state is kept in two tables: `saml_requests` holds the ids of requests Piecewise issued (10 minutes), and `saml_flows` remembers where to send the person afterwards, keyed by the RelayState. No cookie is involved, because the identity provider posts the response from its own origin and a `SameSite=Lax` cookie would not travel with it.
+- Signing out deletes the Piecewise session only. There is no single logout.
+
+### Getting the first administrator with SAML
+
+`/setup` creates a password administrator and is available while password sign-in is on. With SAML, the simpler path is to put your email in `SAML_ADMIN_EMAILS` and sign in; `/api/auth/saml/start` does not require setup to have happened. With `SAML_ENFORCE` (below) `/setup` is closed, so `SAML_ADMIN_EMAILS` or `SAML_ADMIN_GROUPS` is the only way to get the first administrator.
+
+### IdP-initiated sign-in
+
+By default a response must answer a request Piecewise issued (`InResponseTo` is checked against `saml_requests`), so a sign-in has to start from the Piecewise sign-in page. Clicking the app in the Okta dashboard sends an unsolicited response, which is refused with "Sign-in must start from Piecewise". Set `SAML_ALLOW_IDP_INITIATED=true` to accept those; Okta's "Default RelayState" is then used as the landing path when it is a same-site path. Unsolicited responses are still checked for signature, issuer, audience, and validity window, but they can be replayed within that window by anyone who obtains one, which is why this is off by default.
+
+### Enforcing SAML
+
+```sh
+SAML_ENFORCE=true
+```
+
+With this set, SAML is the only way in:
+
+- `AUTH_LOCAL` is treated as `false`, and `OIDC_*` and `AUTH_TRUSTED_*` are ignored. `/api/auth/login` and `/api/auth/setup` return 403; the sign-in page sends people straight to the identity provider, showing an error first if the previous attempt failed.
+- On start, every session that did not come through SAML is ended (sessions record how they were created in `sessions.via`), and such sessions are refused if they turn up later. People signed in with a password before the change have to sign in again through SAML.
+- Accounts keep their roles and plans; a password account is linked to its SAML identity by email on first sign-in.
+- The server refuses to start if SAML is not fully configured.
+
+Turn it on only after a SAML sign-in has worked with `SAML_ENFORCE` unset. To get back in if the identity provider breaks, unset `SAML_ENFORCE` and restart; password accounts (including `BOOTSTRAP_ADMIN_*`) work again immediately.
+
+The SAML flow is covered by automated tests against a mock identity provider that signs responses the way Okta does (`server/test/saml.test.ts`); it has not been run against a live Okta org.
+
+## Provisioning (SCIM 2.0)
+
+Piecewise is a SCIM 2.0 service provider at `<BASE_URL>/api/scim/v2` (`server/src/scim/`). An identity provider can create people before they ever sign in, keep names and emails current, deactivate and reactivate them, delete them, and push groups. It is written against Okta's SCIM client and follows RFC 7643/7644 closely enough for other clients.
+
+### Okta setup
+
+1. In Admin → Sign-in, create a SCIM token (give it a label such as "Okta"). It is shown once; copy it.
+2. In Okta, the SAML app from above needs provisioning enabled. Either edit the app's General settings and check "Enable SCIM provisioning" (available for SAML apps created with the app integration wizard), or create a separate "SCIM 2.0 Test App (Header Auth)" integration.
+3. On the Provisioning tab → Integration:
+
+   | Okta field | Value |
+   |---|---|
+   | SCIM connector base URL | `<BASE_URL>/api/scim/v2` |
+   | Unique identifier field for users | `userName` |
+   | Supported provisioning actions | Push New Users, Push Profile Updates, Push Groups; Import New Users and Profile Updates if you want Okta to read existing accounts |
+   | Authentication Mode | HTTP Header |
+   | Authorization | the token from step 1 |
+
+   "Test Connector Configuration" calls `/Users?filter=…`, `/Users`, and, if group push is selected, `/Groups`.
+
+4. On Provisioning → To App, enable Create Users, Update User Attributes, and Deactivate Users. In the attribute mappings, keep `userName` mapped to the person's email (Okta's username is usually the email; if yours is not, map `userName` to `user.email`). `givenName`, `familyName`, `displayName`, and `email` are used; other attributes are accepted and ignored.
+5. Assign people to the app; Okta creates them in Piecewise at once. Push Groups sends group membership.
+
+Okta reaches the SCIM endpoint from its own network, so `BASE_URL` must be reachable from the internet (or Okta's published IP ranges must be allowed through your firewall), over HTTPS.
+
+### What SCIM does to accounts
+
+| SCIM request | Effect |
+|---|---|
+| `POST /Users` | Creates an account with no password, `auth_source` `scim`, and `SAML_DEFAULT_ROLE` (or `app_admin` if the email is in `SAML_ADMIN_EMAILS`). `userName` must be an email address, or `emails` must carry one. Refused with 409 if the email or `externalId` already belongs to someone. |
+| `GET /Users?filter=userName eq "…"` | Looks an account up by email (also `emails.value`, `externalId`, `id`). Okta calls this before every create, so an existing password or SSO account with that email is adopted rather than duplicated; from then on Okta updates it. |
+| `PUT /Users/:id` | Replaces name, email, `externalId`, and `active`. |
+| `PATCH /Users/:id` | Applies `add`, `replace`, and `remove` operations, with or without a `path` (Okta's deactivation is `replace` with `{ "active": false }`; `active` as `"True"`/`"False"` strings is accepted too). `active: false` disables the account and ends its sessions; `active: true` re-enables it. |
+| `DELETE /Users/:id` | Deletes the account and its plans, like Admin → Users → Delete. Okta deactivates rather than deletes, so this is only reached by an explicit client action. |
+| `POST`/`PUT`/`PATCH`/`DELETE /Groups` | Stores groups and membership (`scim_groups`, `scim_group_members`), visible in Admin → Sign-in. Members must be ids of existing users. Group names are unique, case-insensitively. Membership is informational: it does not change roles. |
+| `GET /ServiceProviderConfig`, `/ResourceTypes`, `/Schemas` | Discovery. Filtering by one `eq` clause and pagination (`startIndex`, `count`, up to 500) are supported; sorting, bulk, and ETags are not. |
+
+Accounts created by SCIM sign in through SAML (or OIDC): on their first sign-in the account is matched by external id or email and linked. In Admin → Users they show as "SSO" with a "provisioned" tag. Administrators can still edit, disable, or delete them, but Okta will push its own values again on the next update.
+
+Tokens: any number can exist, each with a label; revoking one in Admin → Sign-in stops that client at once. Requests without a valid token get 401 with a SCIM error body; the session cookie is never accepted on `/api/scim/`. Every change made through SCIM is written to the audit log with the actor `scim:<token label>`.
+
+The SCIM endpoints are covered by `server/test/scim.test.ts`, which sends the request shapes Okta sends; they have not been run against a live Okta org.
+
 ## Trusted-header sign-in
 
 Use this when an authenticating proxy (oauth2-proxy, Cloudflare Access, Pomerium, or similar) already identifies the user and forwards their email in a request header.
@@ -257,7 +388,7 @@ Everything lives in `DATA_DIR`:
 
 | File | Contents |
 |---|---|
-| `piecewise.sqlite` (plus `-wal`, `-shm`) | Users (scrypt password hashes), sessions, plans, pieces, helper messages, provider settings with encrypted API keys, plugin settings, organization settings, audit log, in-flight OIDC flows. |
+| `piecewise.sqlite` (plus `-wal`, `-shm`) | Users (scrypt password hashes), sessions, plans, pieces, helper messages, provider settings with encrypted API keys, plugin settings, organization settings, audit log, in-flight OIDC and SAML flows, SCIM tokens (hashed) and groups. |
 | `.app-secret` | Generated `APP_SECRET`, mode `0600`. Present only if `APP_SECRET` was not set on first start. |
 
 Backup: stop the service, copy the whole directory, start it again. If you copy while running, copy the `.sqlite`, `-wal`, and `-shm` files together, or take a consistent snapshot with the SQLite CLI from the host (`sqlite3 piecewise.sqlite ".backup 'piecewise-backup.sqlite'"`; the CLI is not in the image). For a named Podman volume, `podman volume inspect piecewise-data` prints the mount point.
@@ -322,7 +453,9 @@ Lines worth knowing:
 - `web build not found; only the API is served`.
 - `Piecewise is listening on http://0.0.0.0:3000`.
 - `helper model call failed; using rules` and `brief generation failed; using template` when the model provider errors.
-- `oidc callback failed` with the error.
-- `request failed` at error level for any 5xx response.
+- `oidc callback failed` and `saml callback failed` with the error.
+- `SAML is enforced; ended sessions that did not come through SAML` at start when `SAML_ENFORCE` is on and there were such sessions.
+- `scim request failed` at error level for a 5xx on a SCIM endpoint.
+- `request failed` at error level for any other 5xx response.
 
-Who did what is recorded separately in the audit log inside the database: sign-ins and failures, user and provider changes, plugin and settings changes. Read it in Admin → Audit log or `GET /api/admin/audit?limit=100` (maximum 500), as an app administrator.
+Who did what is recorded separately in the audit log inside the database: sign-ins and failures, user and provider changes, plugin and settings changes, SCIM changes (actor `scim:<token label>`), and SCIM token creation and revocation. Read it in Admin → Audit log or `GET /api/admin/audit?limit=100` (maximum 500), as an app administrator.

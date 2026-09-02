@@ -11,7 +11,7 @@ describe("authentication and roles", () => {
 
   it("reports that setup is needed, then completes it once", async () => {
     const before = await t.app.inject({ method: "GET", url: "/api/auth/config" });
-    expect(before.json()).toMatchObject({ needsSetup: true, local: true, oidc: null });
+    expect(before.json()).toMatchObject({ needsSetup: true, local: true, oidc: null, saml: null });
     admin = await setupAdmin(t);
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: admin } });
     expect(me.json().user).toMatchObject({ email: "admin@example.com", role: "app_admin" });
@@ -87,6 +87,22 @@ describe("trusted header authentication", () => {
     const ok = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { "x-forwarded-email": "pat@example.com", "x-forwarded-name": "Pat Lee", "x-piecewise-proxy-token": "proxy-secret" } });
     expect(ok.statusCode).toBe(200);
     expect(ok.json().user).toMatchObject({ email: "pat@example.com", name: "Pat Lee", role: "user", authSource: "trusted-header" });
+  });
+});
+
+describe("password sign-in turned off", () => {
+  it("does not ask for a local administrator and refuses setup and login", async () => {
+    const t = await createTestApp({ AUTH_LOCAL: "false", AUTH_TRUSTED_HEADER: "X-Forwarded-Email" });
+    try {
+      const cfg = await t.app.inject({ method: "GET", url: "/api/auth/config" });
+      expect(cfg.json()).toMatchObject({ needsSetup: false, local: false, trustedHeader: true });
+      const setup = await t.app.inject({ method: "POST", url: "/api/auth/setup", payload: { email: "x@example.com", name: "X", password: "another-long-password" } });
+      expect(setup.statusCode).toBe(403);
+      const login = await t.app.inject({ method: "POST", url: "/api/auth/login", payload: { email: "x@example.com", password: "another-long-password" } });
+      expect(login.statusCode).toBe(403);
+    } finally {
+      await t.close();
+    }
   });
 });
 

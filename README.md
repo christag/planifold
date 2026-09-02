@@ -93,9 +93,14 @@ Every setting is an environment variable with a working default. The full list, 
 | `BASE_URL` | unset | Public address, for example `https://piecewise.example.com`. Required for OIDC. When it starts with `https://`, session cookies are marked Secure. |
 | `DATA_DIR` | `./data` (`/data` in the image) | Holds the SQLite database and the generated secret. Back it up by copying the directory. |
 | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | unset | Creates the first app administrator on start when the database is empty. Password at least 10 characters; it must be changed at first sign-in. Otherwise use `/setup`. |
-| `OIDC_ISSUER` | unset | Turns on single sign-on. Needs `OIDC_CLIENT_ID` and `BASE_URL`; add `OIDC_CLIENT_SECRET` if the provider issues one. `OIDC_ADMIN_EMAILS` names who becomes an administrator on first sign-in. |
+| `OIDC_ISSUER` | unset | Turns on single sign-on through OpenID Connect. Needs `OIDC_CLIENT_ID` and `BASE_URL`; add `OIDC_CLIENT_SECRET` if the provider issues one. `OIDC_ADMIN_EMAILS` names who becomes an administrator on first sign-in. |
+| `SAML_IDP_SSO_URL`, `SAML_IDP_ISSUER`, `SAML_IDP_CERT` | unset | Turn on single sign-on through SAML 2.0 (written for Okta). Needs `BASE_URL`. `SAML_ADMIN_EMAILS` names who becomes an administrator; `SAML_ENFORCE=true` makes SAML the only way in. |
 
-Other variables: `PORT`, `HOST`, `TRUST_PROXY`, `SECURE_COOKIES`, `SESSION_DAYS`, `AUTH_LOCAL`, `OIDC_SCOPES`, `OIDC_BUTTON_LABEL`, `OIDC_DEFAULT_ROLE`, `AUTH_TRUSTED_HEADER`, `AUTH_TRUSTED_NAME_HEADER`, `AUTH_TRUSTED_PROXY_TOKEN`, `AUTH_TRUSTED_DEFAULT_ROLE`, `PLUGINS_DIR`, `DB_PATH`, `LOG_LEVEL`. See `.env.example` and `server/src/config.ts`.
+Other variables: `PORT`, `HOST`, `TRUST_PROXY`, `SECURE_COOKIES`, `SESSION_DAYS`, `AUTH_LOCAL`, `OIDC_SCOPES`, `OIDC_BUTTON_LABEL`, `OIDC_DEFAULT_ROLE`, the other `SAML_*` variables (`SAML_SP_ENTITY_ID`, `SAML_SP_PRIVATE_KEY`, `SAML_SP_CERT`, `SAML_NAMEID_FORMAT`, `SAML_WANT_RESPONSE_SIGNED`, `SAML_ALLOW_IDP_INITIATED`, `SAML_CLOCK_SKEW_SECONDS`, `SAML_BUTTON_LABEL`, `SAML_DEFAULT_ROLE`, `SAML_ADMIN_GROUPS`, `SAML_ATTR_*`), `AUTH_TRUSTED_HEADER`, `AUTH_TRUSTED_NAME_HEADER`, `AUTH_TRUSTED_PROXY_TOKEN`, `AUTH_TRUSTED_DEFAULT_ROLE`, `PLUGINS_DIR`, `DB_PATH`, `LOG_LEVEL`. See `.env.example` and `server/src/config.ts`.
+
+### Single sign-on and provisioning with Okta
+
+Piecewise is a SAML 2.0 service provider and a SCIM 2.0 server, so an identity provider can both sign people in and keep the list of people current. With Okta: create a SAML app pointed at `<BASE_URL>/api/auth/saml/callback` with audience `<BASE_URL>/api/auth/saml/metadata`, copy its sign-on URL, issuer, and certificate into `SAML_IDP_*`, and put your own email in `SAML_ADMIN_EMAILS`. For provisioning, create a token in Admin → Sign-in and give Okta the SCIM base URL `<BASE_URL>/api/scim/v2` with header authentication; Okta then creates, updates, deactivates, and groups people in Piecewise. Once SAML sign-in works, `SAML_ENFORCE=true` turns every other sign-in method off and ends their sessions. Step by step in [docs/deploy.md](docs/deploy.md).
 
 ## Roles
 
@@ -105,7 +110,7 @@ Other variables: `PORT`, `HOST`, `TRUST_PROXY`, `SECURE_COOKIES`, `SESSION_DAYS`
 | `integration_admin` | Everything a user can, plus edit the integrations assigned to them: the helper guidance, the access notes, and hiding individual objects, actions, or operations. |
 | `app_admin` | Everything, plus people and roles, AI providers and keys, enabling plugins and assigning their owners, organization guidance and the preferred builder, plugin reload, and the audit log. Can open any plan. |
 
-Roles are ranked (`user` < `integration_admin` < `app_admin`). They are set in Admin → Users, or on first sign-in by `OIDC_ADMIN_EMAILS`, `OIDC_DEFAULT_ROLE`, and `AUTH_TRUSTED_DEFAULT_ROLE`.
+Roles are ranked (`user` < `integration_admin` < `app_admin`). They are set in Admin → Users, or when an account is created by `OIDC_ADMIN_EMAILS`, `OIDC_DEFAULT_ROLE`, `SAML_ADMIN_EMAILS`, `SAML_ADMIN_GROUPS`, `SAML_DEFAULT_ROLE`, and `AUTH_TRUSTED_DEFAULT_ROLE`.
 
 ## The helper
 
@@ -170,9 +175,11 @@ The Handoff tab renders the plan as a document: the thought, things to remember,
 Details and the threat model are in [docs/security.md](docs/security.md). In short:
 
 - Passwords are hashed with scrypt. Sessions are random tokens stored in SQLite, sent as an `HttpOnly`, `SameSite=Lax` cookie, `Secure` when `BASE_URL` is https.
-- Single sign-on uses OpenID Connect authorization code with PKCE, `state`, and `nonce`, through `openid-client`. It is tested against a mock provider (`oauth2-mock-server`), not against a specific vendor.
+- Single sign-on uses OpenID Connect authorization code with PKCE, `state`, and `nonce`, through `openid-client`, or SAML 2.0 through `@node-saml/node-saml` with signed assertions, issuer and audience checks, and replay protection. Both are tested against mock providers, not against a specific vendor.
+- `SAML_ENFORCE` makes SAML the only sign-in method and ends every session that did not come through it.
+- SCIM provisioning is authenticated by bearer tokens that are shown once and stored hashed; the session cookie is never accepted on `/api/scim/`.
 - Trusted-header sign-in (for oauth2-proxy and similar) can require a shared secret in `X-Piecewise-Proxy-Token`, so the identity header cannot be spoofed from inside the network.
-- State-changing API calls are rejected when the `Origin` header does not match the host or `BASE_URL`.
+- State-changing API calls are rejected when the `Origin` header does not match the host or `BASE_URL`, except the SAML assertion consumer and the SCIM endpoints, which do not use cookies.
 - AI provider keys are encrypted at rest (AES-256-GCM, key derived from `APP_SECRET`).
 - Responses carry a Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and a restrictive `Permissions-Policy`. API responses are `no-store`.
 - Rate limits: 600 requests per minute per client, 10 per minute on sign-in, 5 on setup, 30 on helper calls.
@@ -185,7 +192,7 @@ Known limits: one process, one SQLite file. There is no clustering, external dat
 
 ```
 shared/         Types, manifest schema, grammar, handoff rendering (used by server and web)
-server/         Fastify API: auth, plans, helper, plugins, admin; SQLite via better-sqlite3
+server/         Fastify API: auth (password, OIDC, SAML), SCIM, plans, helper, plugins, admin; SQLite via better-sqlite3
 web/            React app (Vite); built output is served by the server
 plugins/        The 23 built-in plugin manifests
 plugins-extra/  Drop-in directory for your own plugins (mounted at /plugins by compose)
@@ -204,7 +211,7 @@ compose.yaml    Compose file for podman compose or docker compose
 npm ci
 npm run dev              # server on :3000 with reload, web on :5173 proxying /api
 npm run typecheck        # every workspace
-npm test                 # vitest: shared (grammar) and server (auth, plans, helper, OIDC)
+npm test                 # vitest: shared (grammar) and server (auth, plans, helper, OIDC, SAML, SCIM)
 npm run validate-plugins # every plugins/<id>/plugin.json against the schema, plus a grammar smoke test
 npm run build            # shared typecheck, web bundle, server bundle (esbuild -> server/dist/server.js)
 npm run test:e2e         # Playwright against a running app at PW_BASE_URL (default http://localhost:3210)

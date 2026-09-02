@@ -9,8 +9,9 @@ Paths below are relative to the repository root. The three workspaces are `share
  ┌──────────────────────────────────┐        ┌──────────────────────────────────────────────┐
  │ React app (web/)                 │        │ Fastify (server/src/app.ts)                  │
  │  zustand stores                  │  HTTP  │  auth plugin ── cookie session / OIDC /      │
- │  grammar from @piecewise/shared ─┼───────►│              trusted header                  │
+ │  grammar from @piecewise/shared ─┼───────►│              SAML / trusted header           │
  │  renders sentences instantly     │  JSON  │  /api/plans, /api/helper, /api/admin, ...    │
+ │                                  │        │  /api/scim/v2 ◄── identity provider (SCIM)   │
  └──────────────────────────────────┘        │  static files (web/dist) + SPA fallback      │
                                              │                                              │
                                              │  PluginRegistry ◄── plugins/  PLUGINS_DIR    │
@@ -148,12 +149,12 @@ The same grammar runs in both places. `@piecewise/shared` exports its TypeScript
 
 ## Data model
 
-All tables are created by the single migration in `server/src/db/migrations.ts`. The file is append-only; `server/src/db/index.ts` records applied versions in `schema_migrations` and opens the database with `journal_mode = WAL`, `foreign_keys = ON`, and `busy_timeout = 5000`.
+All tables are created by the migrations in `server/src/db/migrations.ts`. The file is append-only; `server/src/db/index.ts` records applied versions in `schema_migrations` and opens the database with `journal_mode = WAL`, `foreign_keys = ON`, and `busy_timeout = 5000`.
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `users` | Accounts | `role` is `user`, `integration_admin`, or `app_admin`; `password_hash` is scrypt or null; `auth_source` is `local`, `oidc`, or `trusted-header` |
-| `sessions` | Cookie sessions | Random id, `expires_at`; cascade on user delete |
+| `users` | Accounts | `role` is `user`, `integration_admin`, or `app_admin`; `password_hash` is scrypt or null; `auth_source` is `local`, `oidc`, `saml`, `scim`, or `trusted-header`; `oidc_sub`, `saml_name_id`, and `scim_external_id` are the identity keys of the respective methods; `given_name`, `family_name`, `updated_at` serve SCIM |
+| `sessions` | Cookie sessions | Random id, `expires_at`, `via` (`local`, `oidc`, `saml`); cascade on user delete |
 | `plans` | One row per plan | `thought`, `facts` (JSON array), `status` in `draft`, `ready`, `handed_off`; `brief` holds the generated build brief |
 | `pieces` | One row per piece | `kind`, `position`, `slots` (JSON object of `SlotValue`), `label`, `notes`; cascade on plan delete |
 | `helper_messages` | Helper conversation per plan | `role` user or assistant, `content`, `payload` (JSON: suggestions, questions, source, model, notice) |
@@ -162,6 +163,10 @@ All tables are created by the single migration in `server/src/db/migrations.ts`.
 | `settings` | Key-value organization settings | `orgName`, `orgGuidance`, `preferredBuilder` |
 | `audit_log` | Administrative and plan events | `actor_email`, `action`, `target`, `details` (JSON) |
 | `oidc_flows` | In-flight OIDC logins | `state`, `nonce`, `code_verifier`, `redirect_to`; rows older than 15 minutes are purged on the next start |
+| `saml_requests` | Ids of SAML requests issued | node-saml's `InResponseTo` cache; a response must name one, which is then deleted; 10-minute life |
+| `saml_flows` | Where to send the person after SAML sign-in | Keyed by the RelayState; 15-minute life |
+| `scim_tokens` | Bearer tokens for SCIM clients | SHA-256 hash, label, display prefix, `last_used_at` |
+| `scim_groups`, `scim_group_members` | Groups pushed over SCIM | Display name (unique, case-insensitive), external id, membership; cascade on group or user delete |
 
 Slot values are stored as a JSON blob per piece rather than one row per slot. The grammar is the only reader that interprets them, and it tolerates stale keys because `cleanPiece` prunes them.
 
@@ -215,7 +220,7 @@ Plan-scoped endpoints:
 | POST | `/api/plans/:id/brief` | Write or rewrite the build brief (10 per minute) |
 | GET | `/api/helper/status` | Whether a provider is active, and which |
 
-`loadPlanFor` (`server/src/plans/access.ts`) allows the owner or any `app_admin`. Authentication endpoints live under `/api/auth/*`, integration-owner endpoints under `/api/integrations`, and app-admin endpoints under `/api/admin/*` (users, providers, settings, plugins, audit).
+`loadPlanFor` (`server/src/plans/access.ts`) allows the owner or any `app_admin`. Authentication endpoints live under `/api/auth/*` (password, OIDC, SAML), integration-owner endpoints under `/api/integrations`, app-admin endpoints under `/api/admin/*` (users, providers, settings, plugins, audit, sign-in methods and SCIM tokens), and the SCIM 2.0 provisioning API under `/api/scim/v2` (`server/src/scim/`), which an identity provider calls with a bearer token.
 
 ## The helper pipeline
 
@@ -309,7 +314,7 @@ The workspace (`web/src/workspace/`):
 
 One process serves everything. `server/src/index.ts` loads config, builds the Fastify app, and listens. `server/build.mjs` bundles `server/src/index.ts` and the shared package into `server/dist/server.js` with esbuild; runtime dependencies stay external and are installed with `npm ci --omit=dev --workspace=server`.
 
-`server/src/app.ts` registers, in order: a global rate limit (600 requests per minute per client), the auth plugin (cookie parsing, session lookup, same-origin check for state-changing `/api/` requests, trusted-header fallback), `/api/health`, then the auth, plans, helper, integrations, and admin routes. Unknown `/api/*` paths return 404 JSON. If `WEB_DIST_DIR/index.html` exists, `@fastify/static` serves the build at `/`, and any other `GET` that is not under `/api/` returns `index.html` so client-side routes work. An `onSend` hook adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a `Permissions-Policy`, a Content-Security-Policy on non-API responses (`default-src 'self'`, inline styles allowed, no remote scripts), `Cache-Control: no-store` on API responses, and a one-year immutable cache on `/assets/`.
+`server/src/app.ts` registers, in order: a global rate limit (600 requests per minute per client), a form-body parser (for the SAML assertion consumer), the auth plugin (cookie parsing, session lookup, same-origin check for state-changing `/api/` requests, trusted-header fallback), `/api/health`, then the auth, plans, helper, integrations, admin, and SCIM routes. When `SAML_ENFORCE` is on, sessions that did not come through SAML are ended at start. Unknown `/api/*` paths return 404 JSON. If `WEB_DIST_DIR/index.html` exists, `@fastify/static` serves the build at `/`, and any other `GET` that is not under `/api/` returns `index.html` so client-side routes work. An `onSend` hook adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a `Permissions-Policy`, a Content-Security-Policy on non-API responses (`default-src 'self'`, inline styles allowed, no remote scripts), `Cache-Control: no-store` on API responses, and a one-year immutable cache on `/assets/`.
 
 Configuration is read once from the environment in `server/src/config.ts`; every value has a default so `npm start` works with no setup. The variables that shape the deployment:
 
@@ -327,7 +332,7 @@ Configuration is read once from the environment in `server/src/config.ts`; every
 | `SESSION_DAYS` | `14` | Cookie and session lifetime |
 | `LOG_LEVEL` | `info` (`silent` under `NODE_ENV=test`) | pino level |
 
-Authentication variables (`AUTH_LOCAL`, `OIDC_*`, `AUTH_TRUSTED_*`, `BOOTSTRAP_ADMIN_*`) are listed in `server/src/config.ts` and `.env.example`.
+Authentication variables (`AUTH_LOCAL`, `OIDC_*`, `SAML_*`, `AUTH_TRUSTED_*`, `BOOTSTRAP_ADMIN_*`) are listed in `server/src/config.ts` and `.env.example`; `docs/deploy.md` walks through Okta for both SAML and SCIM.
 
 The `Containerfile` is a two-stage build on `node:22-bookworm-slim`. The runtime stage sets `NODE_ENV=production`, `DATA_DIR=/data`, and `PLUGINS_DIR=/plugins`, copies `server/dist`, `web/dist`, and `plugins/`, runs as the `node` user, declares `/data` as a volume, and has a health check against `/api/health`. `compose.yaml` mounts a named volume at `/data` and `./plugins-extra` read-only at `/plugins`. `deploy/piecewise.container` is a Podman Quadlet unit for the same image with an environment file at `~/.config/piecewise/piecewise.env`. CI (`.github/workflows/ci.yml`) runs typecheck, plugin validation, unit tests, a production build, and Playwright end-to-end tests against the built server, then pushes a multi-arch image to `ghcr.io` on pushes to `main` and version tags.
 
@@ -337,4 +342,5 @@ The `Containerfile` is a two-stage build on `node:22-bookworm-slim`. The runtime
 - The design assumes one process. The plugin registry caches the catalog in memory and invalidates it only in the process that changed the settings. OIDC flow state is in the database rather than in memory, but nothing else in the app is arranged for several instances sharing one file.
 - The rule-based helper matches keywords. It cannot interpret a thought it has not seen words for, and its suggestions are guesses the person must check. A configured model is needed for real suggestions and for a written build brief.
 - OIDC is tested against `oauth2-mock-server` in `server/test/oidc.test.ts`, not against a specific vendor's implementation. It uses the standard authorization-code flow with PKCE through `openid-client`, and it needs the `email` claim (or the userinfo endpoint) to create an account.
+- SAML is tested against a mock identity provider that signs responses the way Okta does (`server/test/saml.test.ts`), and SCIM against the request shapes Okta sends (`server/test/scim.test.ts`); neither has been run against a live Okta org.
 - Piecewise does not run anything. The output is a document and a brief; the build happens elsewhere.
