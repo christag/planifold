@@ -113,3 +113,13 @@ npm run build
 ```
 
 Add or update tests with behavior changes: grammar changes belong in `shared/test/grammar.test.ts`, API changes in `server/test/`, and user-visible flows in `e2e/`. If a change alters a command, variable, endpoint, or manifest field, update the document that describes it in the same pull request. Documentation that does not match the code is treated as a bug.
+
+## Licensing of contributions
+
+Piecewise is licensed to the public under the AGPL-3.0-or-later, and the copyright holder also grants Morning Brew Inc. a separate unconditional license (`LICENSE-MORNING-BREW.md`). So that both can keep working, every contribution is accepted on these terms:
+
+- You license your contribution under the AGPL-3.0-or-later, like the rest of the project.
+- You also grant Chris Tagliaferro a perpetual, irrevocable, worldwide, royalty-free license to use, modify, distribute, and sublicense your contribution, including under the additional grant to Morning Brew Inc.
+- You confirm you have the right to grant these licenses (for example, that your employer does not own the work, or has agreed).
+
+Opening a pull request states your agreement. If you cannot agree to these terms, open an issue instead so the idea can be reimplemented.

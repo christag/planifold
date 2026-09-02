@@ -214,4 +214,12 @@ The end-to-end tests need Chrome and a running instance; CI starts one with `NOD
 
 ## License
 
-Apache-2.0
+Piecewise is copyright Chris Tagliaferro and is licensed to the public under the **GNU Affero General Public License v3.0 or later** (`LICENSE`). In plain terms:
+
+- You may clone, run, modify, and redistribute it, including inside a company.
+- Keep the copyright and license notices; the original attribution stays with the code.
+- If you modify Piecewise and let people use it, including over a network, you must make the source of your modified version available to them under the same license. Hosting your fork in a public repository is the simplest way to comply.
+
+**Morning Brew Inc.** holds a separate, exclusive, unconditional license to use and modify Piecewise as it pleases, without the conditions above. See `LICENSE-MORNING-BREW.md`.
+
+Contributions are accepted under the terms in `CONTRIBUTING.md`, which allow the copyright holder to include them in both licenses.
