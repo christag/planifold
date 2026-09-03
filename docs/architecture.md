@@ -1,6 +1,6 @@
 # Architecture
 
-Piecewise is one Node process, one SQLite file, and one React bundle. This document explains how the pieces fit: the planning model, the grammar that turns slot values into sentences, the database, the request path when a person fills a blank, the AI helper, handoff generation, the web app, and the deployment shape.
+Planifold is one Node process, one SQLite file, and one React bundle. This document explains how the pieces fit: the planning model, the grammar that turns slot values into sentences, the database, the request path when a person fills a blank, Plani (the AI helper), handoff generation, the web app, and the deployment shape.
 
 Paths below are relative to the repository root. The three workspaces are `shared/` (types, manifest schema, grammar, handoff), `server/` (Fastify API), and `web/` (React app).
 
@@ -9,15 +9,16 @@ Paths below are relative to the repository root. The three workspaces are `share
  ┌──────────────────────────────────┐        ┌──────────────────────────────────────────────┐
  │ React app (web/)                 │        │ Fastify (server/src/app.ts)                  │
  │  zustand stores                  │  HTTP  │  auth plugin ── cookie session / OIDC /      │
- │  grammar from @piecewise/shared ─┼───────►│              trusted header                  │
+ │  grammar from @planifold/shared ─┼───────►│              SAML / trusted header           │
  │  renders sentences instantly     │  JSON  │  /api/plans, /api/helper, /api/admin, ...    │
+ │                                  │        │  /api/scim/v2 ◄── identity provider (SCIM)   │
  └──────────────────────────────────┘        │  static files (web/dist) + SPA fallback      │
                                              │                                              │
                                              │  PluginRegistry ◄── plugins/  PLUGINS_DIR    │
-                                             │  grammar from @piecewise/shared (validates)  │
+                                             │  grammar from @planifold/shared (validates)  │
                                              │  HelperService ──► Anthropic / OpenAI /      │
                                              │                    OpenAI-compatible server  │
-                                             │  better-sqlite3 ──► DATA_DIR/piecewise.sqlite│
+                                             │  better-sqlite3 ──► DATA_DIR/planifold.sqlite│
                                              └──────────────────────────────────────────────┘
 ```
 
@@ -121,7 +122,7 @@ export interface Sentence {
 
 `buildSentence(piece, ctx)` in `sentence.ts` creates a `Builder` (`builder.ts`) and calls `buildInput`, `buildTransform`, or `buildOutput` by kind. Each of those walks the sentence left to right. For every blank it calls `b.resolve(spec)` with a `SlotSpec` (id, placeholder, options, whether free text is allowed, whether it is optional). `resolve` checks the stored value against the spec: an `option` must be one of the offered ids, a `ref` must be one of the offered pieces, `text` is accepted only when the spec allows it. A value that does not fit is recorded in `invalid` and treated as empty. `emit` pushes the slot token. Optional slots (time range, trigger, outcome, optional params) are shown only once every required slot before them is filled (`b.settled`).
 
-Slot ids are stable strings, so the helper and the client can name them:
+Slot ids are stable strings, so Plani and the client can name them:
 
 | Piece kind | Slot ids |
 |---|---|
@@ -144,16 +145,16 @@ Two functions keep stored state consistent with the grammar:
 - `nudges`: short observations with a level (`info`, `warn`, `done`) and an id. The rules are: `start` when there are no pieces; `blank:<id>` listing what a piece still needs; `unused:<id>` (warn) when an input or transformation is not read by anything; `vague:<id>` (warn) when an `ask_ai` instruction is under six words; `no-input` and `no-output` (warn); `ai` when any step needs a model; `loose` when loose ends remain; `ready` (done) when everything is complete.
 - `ready`: true only when there is at least one input and one output, every piece is complete, there are no loose ends, and no warn-level nudge remains.
 
-The same grammar runs in both places. `@piecewise/shared` exports its TypeScript source directly (`"main": "./src/index.ts"`); Vite compiles it into the web bundle and esbuild bundles it into `server/dist/server.js`. The browser calls `buildSentence`, `cleanPiece`, and `analyzePlan` to render and react without a round trip. The server calls `cleanPiece` on every write and `reconcilePlan` after structural changes, so nothing reaches the database that the grammar would not produce.
+The same grammar runs in both places. `@planifold/shared` exports its TypeScript source directly (`"main": "./src/index.ts"`); Vite compiles it into the web bundle and esbuild bundles it into `server/dist/server.js`. The browser calls `buildSentence`, `cleanPiece`, and `analyzePlan` to render and react without a round trip. The server calls `cleanPiece` on every write and `reconcilePlan` after structural changes, so nothing reaches the database that the grammar would not produce.
 
 ## Data model
 
-All tables are created by the single migration in `server/src/db/migrations.ts`. The file is append-only; `server/src/db/index.ts` records applied versions in `schema_migrations` and opens the database with `journal_mode = WAL`, `foreign_keys = ON`, and `busy_timeout = 5000`.
+All tables are created by the migrations in `server/src/db/migrations.ts`. The file is append-only; `server/src/db/index.ts` records applied versions in `schema_migrations` and opens the database with `journal_mode = WAL`, `foreign_keys = ON`, and `busy_timeout = 5000`.
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `users` | Accounts | `role` is `user`, `integration_admin`, or `app_admin`; `password_hash` is scrypt or null; `auth_source` is `local`, `oidc`, or `trusted-header` |
-| `sessions` | Cookie sessions | Random id, `expires_at`; cascade on user delete |
+| `users` | Accounts | `role` is `user`, `integration_admin`, or `app_admin`; `password_hash` is scrypt or null; `auth_source` is `local`, `oidc`, `saml`, `scim`, or `trusted-header`; `oidc_sub`, `saml_name_id`, and `scim_external_id` are the identity keys of the respective methods; `given_name`, `family_name`, `updated_at` serve SCIM |
+| `sessions` | Cookie sessions | Random id, `expires_at`, `via` (`local`, `oidc`, `saml`); cascade on user delete |
 | `plans` | One row per plan | `thought`, `facts` (JSON array), `status` in `draft`, `ready`, `handed_off`; `brief` holds the generated build brief |
 | `pieces` | One row per piece | `kind`, `position`, `slots` (JSON object of `SlotValue`), `label`, `notes`; cascade on plan delete |
 | `helper_messages` | Helper conversation per plan | `role` user or assistant, `content`, `payload` (JSON: suggestions, questions, source, model, notice) |
@@ -162,6 +163,10 @@ All tables are created by the single migration in `server/src/db/migrations.ts`.
 | `settings` | Key-value organization settings | `orgName`, `orgGuidance`, `preferredBuilder` |
 | `audit_log` | Administrative and plan events | `actor_email`, `action`, `target`, `details` (JSON) |
 | `oidc_flows` | In-flight OIDC logins | `state`, `nonce`, `code_verifier`, `redirect_to`; rows older than 15 minutes are purged on the next start |
+| `saml_requests` | Ids of SAML requests issued | node-saml's `InResponseTo` cache; a response must name one, which is then deleted; 10-minute life |
+| `saml_flows` | Where to send the person after SAML sign-in | Keyed by the RelayState; 15-minute life |
+| `scim_tokens` | Bearer tokens for SCIM clients | SHA-256 hash, label, display prefix, `last_used_at` |
+| `scim_groups`, `scim_group_members` | Groups pushed over SCIM | Display name (unique, case-insensitive), external id, membership; cascade on group or user delete |
 
 Slot values are stored as a JSON blob per piece rather than one row per slot. The grammar is the only reader that interprets them, and it tolerates stale keys because `cleanPiece` prunes them.
 
@@ -215,11 +220,11 @@ Plan-scoped endpoints:
 | POST | `/api/plans/:id/brief` | Write or rewrite the build brief (10 per minute) |
 | GET | `/api/helper/status` | Whether a provider is active, and which |
 
-`loadPlanFor` (`server/src/plans/access.ts`) allows the owner or any `app_admin`. Authentication endpoints live under `/api/auth/*`, integration-owner endpoints under `/api/integrations`, and app-admin endpoints under `/api/admin/*` (users, providers, settings, plugins, audit).
+`loadPlanFor` (`server/src/plans/access.ts`) allows the owner or any `app_admin`. Authentication endpoints live under `/api/auth/*` (password, OIDC, SAML), integration-owner endpoints under `/api/integrations`, app-admin endpoints under `/api/admin/*` (users, providers, settings, plugins, audit, sign-in methods and SCIM tokens), and the SCIM 2.0 provisioning API under `/api/scim/v2` (`server/src/scim/`), which an identity provider calls with a bearer token.
 
-## The helper pipeline
+## Plani: the helper pipeline
 
-The helper is always present. It proposes; it never writes to a plan on its own. Everything it suggests goes back through the grammar before a person can apply it. The code is in `server/src/helper/`.
+Plani is always present. It proposes; it never writes to a plan on its own. Everything it suggests goes back through the grammar before a person can apply it. The code is in `server/src/helper/`.
 
 ```
  POST /api/plans/:id/helper { message, intent, focus }
@@ -242,7 +247,7 @@ The helper is always present. It proposes; it never writes to a plan on its own.
  store user + assistant messages; merge `remember` into plan.facts
 ```
 
-The system prompt is deterministic for a given catalog and organization so that it can be cached by the provider. It contains: what Piecewise is and is not; the three piece kinds with example sentences; the rules (one piece at a time, propose rather than decide, never invent ids); the full slot-id scheme and the operator table; every enabled integration with its objects, fields, actions, params, guidance, and access notes; every operation; and the organization's guidance under a heading that says to follow it. If `preferredBuilder` is set, the prompt says to steer toward it.
+The system prompt is deterministic for a given catalog and organization so that it can be cached by the provider. It contains: what Planifold is and is not; the three piece kinds with example sentences; the rules (one piece at a time, propose rather than decide, never invent ids); the full slot-id scheme and the operator table; every enabled integration with its objects, fields, actions, params, guidance, and access notes; every operation; and the organization's guidance under a heading that says to follow it. If `preferredBuilder` is set, the prompt says to steer toward it.
 
 The state message is the volatile part: the plan title, thought, and facts; every piece with its id, status, current sentence text, notes, and up to two required blanks (all blanks for the focused piece, each with up to 40 options); the focused piece and slot with its help text; the grammar's nudges under "OBSERVATIONS FROM THE GRAMMAR"; and a task line that depends on the intent (`chat`, `breakdown`, `slot`, `review`). The last twelve stored messages are sent as history, followed by one user message made of the state and `PERSON SAYS: …`.
 
@@ -309,7 +314,7 @@ The workspace (`web/src/workspace/`):
 
 One process serves everything. `server/src/index.ts` loads config, builds the Fastify app, and listens. `server/build.mjs` bundles `server/src/index.ts` and the shared package into `server/dist/server.js` with esbuild; runtime dependencies stay external and are installed with `npm ci --omit=dev --workspace=server`.
 
-`server/src/app.ts` registers, in order: a global rate limit (600 requests per minute per client), the auth plugin (cookie parsing, session lookup, same-origin check for state-changing `/api/` requests, trusted-header fallback), `/api/health`, then the auth, plans, helper, integrations, and admin routes. Unknown `/api/*` paths return 404 JSON. If `WEB_DIST_DIR/index.html` exists, `@fastify/static` serves the build at `/`, and any other `GET` that is not under `/api/` returns `index.html` so client-side routes work. An `onSend` hook adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a `Permissions-Policy`, a Content-Security-Policy on non-API responses (`default-src 'self'`, inline styles allowed, no remote scripts), `Cache-Control: no-store` on API responses, and a one-year immutable cache on `/assets/`.
+`server/src/app.ts` registers, in order: a global rate limit (600 requests per minute per client), a form-body parser (for the SAML assertion consumer), the auth plugin (cookie parsing, session lookup, same-origin check for state-changing `/api/` requests, trusted-header fallback), `/api/health`, then the auth, plans, helper, integrations, admin, and SCIM routes. When `SAML_ENFORCE` is on, sessions that did not come through SAML are ended at start. Unknown `/api/*` paths return 404 JSON. If `WEB_DIST_DIR/index.html` exists, `@fastify/static` serves the build at `/`, and any other `GET` that is not under `/api/` returns `index.html` so client-side routes work. An `onSend` hook adds `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a `Permissions-Policy`, a Content-Security-Policy on non-API responses (`default-src 'self'`, inline styles allowed, no remote scripts), `Cache-Control: no-store` on API responses, and a one-year immutable cache on `/assets/`.
 
 Configuration is read once from the environment in `server/src/config.ts`; every value has a default so `npm start` works with no setup. The variables that shape the deployment:
 
@@ -318,7 +323,7 @@ Configuration is read once from the environment in `server/src/config.ts`; every
 | `PORT`, `HOST` | `3000`, `0.0.0.0` | Listen address |
 | `BASE_URL` | unset | Public origin; required for OIDC; when it starts with `https://`, cookies default to secure |
 | `DATA_DIR` | `./data` | Created if missing; holds the database and the generated secret |
-| `DB_PATH` | `DATA_DIR/piecewise.sqlite` | SQLite file |
+| `DB_PATH` | `DATA_DIR/planifold.sqlite` | SQLite file |
 | `APP_SECRET` | generated into `DATA_DIR/.app-secret` | Key for API-key encryption; set it explicitly in production |
 | `BUILTIN_PLUGINS_DIR` | first existing of `../../plugins`, `../plugins`, `./plugins` relative to the bundle or cwd | Built-in plugins |
 | `PLUGINS_DIR` | unset | Extra plugins, loaded after the built-ins |
@@ -327,9 +332,9 @@ Configuration is read once from the environment in `server/src/config.ts`; every
 | `SESSION_DAYS` | `14` | Cookie and session lifetime |
 | `LOG_LEVEL` | `info` (`silent` under `NODE_ENV=test`) | pino level |
 
-Authentication variables (`AUTH_LOCAL`, `OIDC_*`, `AUTH_TRUSTED_*`, `BOOTSTRAP_ADMIN_*`) are listed in `server/src/config.ts` and `.env.example`.
+Authentication variables (`AUTH_LOCAL`, `OIDC_*`, `SAML_*`, `AUTH_TRUSTED_*`, `BOOTSTRAP_ADMIN_*`) are listed in `server/src/config.ts` and `.env.example`; `docs/deploy.md` walks through Okta for both SAML and SCIM.
 
-The `Containerfile` is a two-stage build on `node:22-bookworm-slim`. The runtime stage sets `NODE_ENV=production`, `DATA_DIR=/data`, and `PLUGINS_DIR=/plugins`, copies `server/dist`, `web/dist`, and `plugins/`, runs as the `node` user, declares `/data` as a volume, and has a health check against `/api/health`. `compose.yaml` mounts a named volume at `/data` and `./plugins-extra` read-only at `/plugins`. `deploy/piecewise.container` is a Podman Quadlet unit for the same image with an environment file at `~/.config/piecewise/piecewise.env`. CI (`.github/workflows/ci.yml`) runs typecheck, plugin validation, unit tests, a production build, and Playwright end-to-end tests against the built server, then pushes a multi-arch image to `ghcr.io` on pushes to `main` and version tags.
+The `Containerfile` is a two-stage build on `node:22-bookworm-slim`. The runtime stage sets `NODE_ENV=production`, `DATA_DIR=/data`, and `PLUGINS_DIR=/plugins`, copies `server/dist`, `web/dist`, and `plugins/`, runs as the `node` user, declares `/data` as a volume, and has a health check against `/api/health`. `compose.yaml` mounts a named volume at `/data` and `./plugins-extra` read-only at `/plugins`. `deploy/planifold.container` is a Podman Quadlet unit for the same image with an environment file at `~/.config/planifold/planifold.env`. CI (`.github/workflows/ci.yml`) runs typecheck, plugin validation, unit tests, a production build, and Playwright end-to-end tests against the built server, then pushes a multi-arch image to `ghcr.io` on pushes to `main` and version tags.
 
 ## Limitations to know about
 
@@ -337,4 +342,5 @@ The `Containerfile` is a two-stage build on `node:22-bookworm-slim`. The runtime
 - The design assumes one process. The plugin registry caches the catalog in memory and invalidates it only in the process that changed the settings. OIDC flow state is in the database rather than in memory, but nothing else in the app is arranged for several instances sharing one file.
 - The rule-based helper matches keywords. It cannot interpret a thought it has not seen words for, and its suggestions are guesses the person must check. A configured model is needed for real suggestions and for a written build brief.
 - OIDC is tested against `oauth2-mock-server` in `server/test/oidc.test.ts`, not against a specific vendor's implementation. It uses the standard authorization-code flow with PKCE through `openid-client`, and it needs the `email` claim (or the userinfo endpoint) to create an account.
-- Piecewise does not run anything. The output is a document and a brief; the build happens elsewhere.
+- SAML is tested against a mock identity provider that signs responses the way Okta does (`server/test/saml.test.ts`), and SCIM against the request shapes Okta sends (`server/test/scim.test.ts`); neither has been run against a live Okta org.
+- Planifold does not run anything. The output is a document and a brief; the build happens elsewhere.

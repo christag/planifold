@@ -1,4 +1,4 @@
-import type { SlotOption, Token } from "@piecewise/shared";
+import type { SlotOption, Token } from "@planifold/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { usePlan } from "../lib/planStore.js";
 import type { Piece } from "../lib/types.js";

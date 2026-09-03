@@ -3,7 +3,7 @@
  * catalog. Built-in plugins ship with the app; extra plugins come from
  * PLUGINS_DIR. A plugin directory holds `plugin.json` and, optionally, a README.
  */
-import { buildCatalog, safeParseManifest, type Catalog, type PluginManifest, type PluginOverrides } from "@piecewise/shared";
+import { buildCatalog, safeParseManifest, type Catalog, type PluginManifest, type PluginOverrides } from "@planifold/shared";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Db } from "../db/index.js";

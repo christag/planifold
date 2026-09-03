@@ -1,4 +1,4 @@
-import { PIECE_KIND_LABEL, type PieceKind } from "@piecewise/shared";
+import { PIECE_KIND_LABEL, type PieceKind } from "@planifold/shared";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "../lib/planStore.js";
 import { ArrowLeft, ArrowRight, Check, More, Plus, Sparkles, Trash } from "../ui/icons.js";

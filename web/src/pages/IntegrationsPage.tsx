@@ -30,7 +30,7 @@ export function IntegrationsPage() {
     <Shell>
       <h1>Integrations</h1>
       <p className="muted small" style={{ marginBottom: 20 }}>
-        {user.role === "app_admin" ? "All loaded plugins. Enable, assign owners, and set guidance under Admin." : "The systems you own. What you write here guides the helper and lands on every handoff that touches them."}
+        {user.role === "app_admin" ? "All loaded plugins. Enable, assign owners, and set guidance under Admin." : "The systems you own. What you write here guides Plani and lands on every handoff that touches them."}
       </p>
       {!plugins ? (
         <Spinner label="Loading" />

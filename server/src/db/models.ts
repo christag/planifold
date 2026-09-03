@@ -1,4 +1,4 @@
-import type { PieceKind, SlotValue } from "@piecewise/shared";
+import type { PieceKind, SlotValue } from "@planifold/shared";
 import { randomUUID } from "node:crypto";
 import type { Db } from "./index.js";
 import { now, parseJson } from "./index.js";
@@ -15,7 +15,12 @@ export interface User {
   disabled: number;
   auth_source: string;
   oidc_sub: string | null;
+  saml_name_id: string | null;
+  scim_external_id: string | null;
+  given_name: string | null;
+  family_name: string | null;
   created_at: string;
+  updated_at: string | null;
   last_login_at: string | null;
 }
 
@@ -88,6 +93,7 @@ export function publicUser(u: User) {
     mustChangePassword: !!u.must_change_password,
     disabled: !!u.disabled,
     authSource: u.auth_source,
+    scimManaged: !!u.scim_external_id,
     createdAt: u.created_at,
     lastLoginAt: u.last_login_at,
   };

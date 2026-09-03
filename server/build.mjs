@@ -2,7 +2,7 @@ import { build } from "esbuild";
 import { readFileSync } from "node:fs";
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
-const external = Object.keys(pkg.dependencies).filter((d) => d !== "@piecewise/shared");
+const external = Object.keys(pkg.dependencies).filter((d) => d !== "@planifold/shared");
 
 await build({
   entryPoints: ["src/index.ts"],
@@ -13,6 +13,6 @@ await build({
   outfile: "dist/server.js",
   sourcemap: true,
   external,
-  banner: { js: "// Piecewise server bundle. Source: https://github.com/christag/piecewise" },
+  banner: { js: "// Planifold server bundle. Source: https://github.com/christag/planifold" },
   logLevel: "info",
 });

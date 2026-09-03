@@ -166,6 +166,12 @@ export const Key = (p: P) => (
     <path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3" />
   </svg>
 );
+export const Shield = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
 export const Users = (p: P) => (
   <svg {...base(p)}>
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" />

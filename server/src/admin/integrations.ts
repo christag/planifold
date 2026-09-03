@@ -20,7 +20,7 @@ const Patch = z.object({
 
 /**
  * Integration administrators own the systems upstream and downstream of
- * Piecewise. They can tune how their integrations are described and
+ * Planifold. They can tune how their integrations are described and
  * guided, but only app administrators enable, disable, or reassign them.
  */
 export async function integrationRoutes(app: FastifyInstance, opts: { ctx: AppContext }) {

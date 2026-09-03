@@ -103,4 +103,48 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE users ADD COLUMN oidc_sub TEXT;
   CREATE UNIQUE INDEX users_oidc_sub ON users(oidc_sub) WHERE oidc_sub IS NOT NULL;
   `,
+  // SAML sign-in and SCIM provisioning.
+  `
+  ALTER TABLE users ADD COLUMN saml_name_id TEXT;
+  CREATE UNIQUE INDEX users_saml_name_id ON users(saml_name_id) WHERE saml_name_id IS NOT NULL;
+  ALTER TABLE users ADD COLUMN scim_external_id TEXT;
+  CREATE UNIQUE INDEX users_scim_external_id ON users(scim_external_id) WHERE scim_external_id IS NOT NULL;
+  ALTER TABLE users ADD COLUMN given_name TEXT;
+  ALTER TABLE users ADD COLUMN family_name TEXT;
+  ALTER TABLE users ADD COLUMN updated_at TEXT;
+  ALTER TABLE sessions ADD COLUMN via TEXT NOT NULL DEFAULT 'local';
+  CREATE TABLE saml_flows (
+    id TEXT PRIMARY KEY,
+    redirect_to TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE saml_requests (
+    id TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE scim_tokens (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    prefix TEXT NOT NULL,
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT
+  );
+  CREATE TABLE scim_groups (
+    id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    external_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX scim_groups_external_id ON scim_groups(external_id) WHERE external_id IS NOT NULL;
+  CREATE TABLE scim_group_members (
+    group_id TEXT NOT NULL REFERENCES scim_groups(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, user_id)
+  );
+  CREATE INDEX scim_group_members_user ON scim_group_members(user_id);
+  `,
 ];

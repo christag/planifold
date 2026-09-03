@@ -1,4 +1,4 @@
-import type { HandoffDocument, PieceKind, SlotValue } from "@piecewise/shared";
+import type { HandoffDocument, PieceKind, SlotValue } from "@planifold/shared";
 
 export type Role = "user" | "integration_admin" | "app_admin";
 
@@ -10,6 +10,7 @@ export interface User {
   mustChangePassword: boolean;
   disabled: boolean;
   authSource: string;
+  scimManaged: boolean;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -18,8 +19,45 @@ export interface AuthConfig {
   needsSetup: boolean;
   local: boolean;
   oidc: { label: string } | null;
+  saml: { label: string; enforced: boolean } | null;
   trustedHeader: boolean;
   orgName: string;
+}
+
+export interface ScimToken {
+  id: string;
+  label: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface ScimGroup {
+  id: string;
+  displayName: string;
+  externalId: string | null;
+  members: number;
+  updatedAt: string;
+}
+
+export interface AuthAdminInfo {
+  methods: {
+    local: boolean;
+    oidc: { label: string; issuer: string } | null;
+    saml: {
+      label: string;
+      enforced: boolean;
+      entityId: string;
+      acsUrl: string;
+      metadataUrl: string;
+      idpIssuer: string;
+      idpSsoUrl: string;
+      allowIdpInitiated: boolean;
+      attributes: { email: string; name: string; firstName: string; lastName: string; groups: string };
+    } | null;
+    trustedHeader: boolean;
+  };
+  scim: { baseUrl: string; tokens: ScimToken[]; groups: ScimGroup[] };
 }
 
 export type PlanStatus = "draft" | "ready" | "handed_off";

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { errorMessage, useApp } from "../lib/store.js";
@@ -16,6 +16,19 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(params.get("error"));
   const [busy, setBusy] = useState(false);
+  const signedOut = params.get("signedout") === "1";
+
+  const samlUrl = `/api/auth/saml/start?redirect=${encodeURIComponent(next)}`;
+  const oidcUrl = `/api/auth/oidc/start?redirect=${encodeURIComponent(next)}`;
+  // With SAML enforced there is nothing to choose: go straight to the identity
+  // provider. An error from a previous attempt is shown first so a failing
+  // provider cannot bounce the person back and forth, and someone who has just
+  // signed out is left on this page rather than signed straight back in by a
+  // session the identity provider still holds.
+  const autoSaml = !!authConfig?.saml?.enforced && !user && !error && !signedOut;
+  useEffect(() => {
+    if (autoSaml) window.location.assign(samlUrl);
+  }, [autoSaml, samlUrl]);
 
   if (user) return <Navigate to={next} replace />;
   if (authConfig?.needsSetup) return <Navigate to="/setup" replace />;
@@ -35,6 +48,9 @@ export function LoginPage() {
     }
   }
 
+  const sso = !!authConfig?.saml || !!authConfig?.oidc;
+  const nothing = !authConfig?.local && !sso;
+
   return (
     <div className="auth-page">
       <div className="auth-card card">
@@ -48,29 +64,45 @@ export function LoginPage() {
             {error}
           </div>
         )}
-        {authConfig?.oidc && (
-          <a className="btn primary lg" href={`/api/auth/oidc/start?redirect=${encodeURIComponent(next)}`}>
-            {authConfig.oidc.label}
-          </a>
+        {signedOut && !error && (
+          <div className="notice" role="status">
+            You're signed out. Your identity provider may still know you, so signing in again can be immediate.
+          </div>
         )}
-        {authConfig?.oidc && authConfig.local && <div className="auth-or">or with a password</div>}
-        {authConfig?.local && (
-          <form onSubmit={submit} className="stack">
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input id="email" className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus={!authConfig.oidc} />
-            </div>
-            <div className="field">
-              <label htmlFor="password">Password</label>
-              <input id="password" className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            <button className={`btn ${authConfig.oidc ? "" : "primary"} lg`} disabled={busy}>
-              {busy ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
-        )}
-        {!authConfig?.local && !authConfig?.oidc && (
-          <p className="small muted">Sign-in is handled by your network. If you're seeing this, ask your administrator to check the authentication settings.</p>
+        {autoSaml ? (
+          <p className="small muted" role="status">
+            Taking you to your identity provider…
+          </p>
+        ) : (
+          <>
+            {authConfig?.saml && (
+              <a className="btn primary lg" href={samlUrl}>
+                {authConfig.saml.label}
+              </a>
+            )}
+            {authConfig?.oidc && (
+              <a className={`btn ${authConfig.saml ? "" : "primary"} lg`} href={oidcUrl}>
+                {authConfig.oidc.label}
+              </a>
+            )}
+            {sso && authConfig?.local && <div className="auth-or">or with a password</div>}
+            {authConfig?.local && (
+              <form onSubmit={submit} className="stack">
+                <div className="field">
+                  <label htmlFor="email">Email</label>
+                  <input id="email" className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus={!sso} />
+                </div>
+                <div className="field">
+                  <label htmlFor="password">Password</label>
+                  <input id="password" className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <button className={`btn ${sso ? "" : "primary"} lg`} disabled={busy}>
+                  {busy ? "Signing in…" : "Sign in"}
+                </button>
+              </form>
+            )}
+            {nothing && <p className="small muted">Sign-in is handled by your network. If you're seeing this, ask your administrator to check the authentication settings.</p>}
+          </>
         )}
       </div>
     </div>

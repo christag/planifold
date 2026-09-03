@@ -1,10 +1,10 @@
-# Piecewise
+# Planifold
 
 Turn a big thought into pieces an AI can build.
 
-Piecewise is a planning tool for AI workflows. A person writes down what they want ("I want to take my emails about pasta and send them to all my friends"), then breaks it into small pieces. Each piece is one sentence with blanks. The blanks come from plugin manifests, so a finished sentence names a real system, a real object, a real field. An always-on helper proposes fills; the person applies them with one click. The finished plan renders as a document an engineer or an AI agent can build from. It runs as one Node process with one SQLite file, so it fits inside a corporate network without external services.
+Planifold is a planning tool for AI workflows. A person writes down what they want ("I want to take my emails about pasta and send them to all my friends"), then breaks it into small pieces. Each piece is one sentence with blanks. The blanks come from plugin manifests, so a finished sentence names a real system, a real object, a real field. Plani, an always-on helper, proposes fills; the person applies them with one click. The finished plan renders as a document an engineer or an AI agent can build from. It runs as one Node process with one SQLite file, so it fits inside a corporate network without external services.
 
-Piecewise does not run automations. It produces the plan; something else builds and runs it.
+Planifold does not run automations. It produces the plan; something else builds and runs it.
 
 ## How it works
 
@@ -38,7 +38,7 @@ The grammar (`shared/src/grammar/`) is the same code on the server and in the br
 
 ## Screenshots
 
-![The workspace: one sentence at a time, with the helper alongside](docs/images/workspace.png)
+![The workspace: one sentence at a time, with Plani alongside](docs/images/workspace.png)
 
 ![The map: every piece and what it reads from](docs/images/map.png)
 
@@ -54,13 +54,13 @@ All three routes end at the same place: open the app in a browser, and the first
 
 ```
 openssl rand -base64 32   # keep this value; it is your APP_SECRET
-podman run -d --name piecewise -p 3000:3000 \
-  -v piecewise-data:/data \
+podman run -d --name planifold -p 3000:3000 \
+  -v planifold-data:/data \
   -e APP_SECRET=<the value above> \
-  ghcr.io/christag/piecewise:latest
+  ghcr.io/christag/planifold:latest
 ```
 
-`docker run` takes the same arguments. The image is built for linux/amd64 and linux/arm64, runs as the unprivileged `node` user, keeps its data in `/data`, and loads extra plugins from `/plugins`. A Podman Quadlet unit is in `deploy/piecewise.container`.
+`docker run` takes the same arguments. The image is built for linux/amd64 and linux/arm64, runs as the unprivileged `node` user, keeps its data in `/data`, and loads extra plugins from `/plugins`. A Podman Quadlet unit is in `deploy/planifold.container`.
 
 ### Compose
 
@@ -81,7 +81,7 @@ npm run build
 npm start
 ```
 
-Then open http://localhost:3000/setup. Without `APP_SECRET`, a secret is generated once and kept in `data/.app-secret`; the database lands in `data/piecewise.sqlite`.
+Then open http://localhost:3000/setup. Without `APP_SECRET`, a secret is generated once and kept in `data/.app-secret`; the database lands in `data/planifold.sqlite`.
 
 ## Configuration
 
@@ -90,26 +90,31 @@ Every setting is an environment variable with a working default. The full list, 
 | Variable | Default | What it does |
 |---|---|---|
 | `APP_SECRET` | generated into `DATA_DIR/.app-secret` | Key that encrypts AI provider API keys at rest. Set it explicitly in production so it can be backed up and rotated. |
-| `BASE_URL` | unset | Public address, for example `https://piecewise.example.com`. Required for OIDC. When it starts with `https://`, session cookies are marked Secure. |
+| `BASE_URL` | unset | Public address, for example `https://planifold.example.com`. Required for OIDC. When it starts with `https://`, session cookies are marked Secure. |
 | `DATA_DIR` | `./data` (`/data` in the image) | Holds the SQLite database and the generated secret. Back it up by copying the directory. |
 | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | unset | Creates the first app administrator on start when the database is empty. Password at least 10 characters; it must be changed at first sign-in. Otherwise use `/setup`. |
-| `OIDC_ISSUER` | unset | Turns on single sign-on. Needs `OIDC_CLIENT_ID` and `BASE_URL`; add `OIDC_CLIENT_SECRET` if the provider issues one. `OIDC_ADMIN_EMAILS` names who becomes an administrator on first sign-in. |
+| `OIDC_ISSUER` | unset | Turns on single sign-on through OpenID Connect. Needs `OIDC_CLIENT_ID` and `BASE_URL`; add `OIDC_CLIENT_SECRET` if the provider issues one. `OIDC_ADMIN_EMAILS` names who becomes an administrator on first sign-in. |
+| `SAML_IDP_SSO_URL`, `SAML_IDP_ISSUER`, `SAML_IDP_CERT` | unset | Turn on single sign-on through SAML 2.0 (written for Okta). Needs `BASE_URL`. `SAML_ADMIN_EMAILS` names who becomes an administrator; `SAML_ENFORCE=true` makes SAML the only way in. |
 
-Other variables: `PORT`, `HOST`, `TRUST_PROXY`, `SECURE_COOKIES`, `SESSION_DAYS`, `AUTH_LOCAL`, `OIDC_SCOPES`, `OIDC_BUTTON_LABEL`, `OIDC_DEFAULT_ROLE`, `AUTH_TRUSTED_HEADER`, `AUTH_TRUSTED_NAME_HEADER`, `AUTH_TRUSTED_PROXY_TOKEN`, `AUTH_TRUSTED_DEFAULT_ROLE`, `PLUGINS_DIR`, `DB_PATH`, `LOG_LEVEL`. See `.env.example` and `server/src/config.ts`.
+Other variables: `PORT`, `HOST`, `TRUST_PROXY`, `SECURE_COOKIES`, `SESSION_DAYS`, `AUTH_LOCAL`, `OIDC_SCOPES`, `OIDC_BUTTON_LABEL`, `OIDC_DEFAULT_ROLE`, the other `SAML_*` variables (`SAML_SP_ENTITY_ID`, `SAML_SP_PRIVATE_KEY`, `SAML_SP_CERT`, `SAML_NAMEID_FORMAT`, `SAML_WANT_RESPONSE_SIGNED`, `SAML_ALLOW_IDP_INITIATED`, `SAML_CLOCK_SKEW_SECONDS`, `SAML_BUTTON_LABEL`, `SAML_DEFAULT_ROLE`, `SAML_ADMIN_GROUPS`, `SAML_ATTR_*`), `AUTH_TRUSTED_HEADER`, `AUTH_TRUSTED_NAME_HEADER`, `AUTH_TRUSTED_PROXY_TOKEN`, `AUTH_TRUSTED_DEFAULT_ROLE`, `PLUGINS_DIR`, `DB_PATH`, `LOG_LEVEL`. See `.env.example` and `server/src/config.ts`.
+
+### Single sign-on and provisioning with Okta
+
+Planifold is a SAML 2.0 service provider and a SCIM 2.0 server, so an identity provider can both sign people in and keep the list of people current. With Okta: create a SAML app pointed at `<BASE_URL>/api/auth/saml/callback` with audience `<BASE_URL>/api/auth/saml/metadata`, copy its sign-on URL, issuer, and certificate into `SAML_IDP_*`, and put your own email in `SAML_ADMIN_EMAILS`. For provisioning, create a token in Admin → Sign-in and give Okta the SCIM base URL `<BASE_URL>/api/scim/v2` with header authentication; Okta then creates, updates, deactivates, and groups people in Planifold. Once SAML sign-in works, `SAML_ENFORCE=true` turns every other sign-in method off and ends their sessions. Step by step in [docs/deploy.md](docs/deploy.md).
 
 ## Roles
 
 | Role | Can |
 |---|---|
-| `user` | Create and edit their own plans, use the helper, export handoffs. Sees the catalog of enabled integrations. |
-| `integration_admin` | Everything a user can, plus edit the integrations assigned to them: the helper guidance, the access notes, and hiding individual objects, actions, or operations. |
+| `user` | Create and edit their own plans, use Plani, export handoffs. Sees the catalog of enabled integrations. |
+| `integration_admin` | Everything a user can, plus edit the integrations assigned to them: the guidance Plani follows, the access notes, and hiding individual objects, actions, or operations. |
 | `app_admin` | Everything, plus people and roles, AI providers and keys, enabling plugins and assigning their owners, organization guidance and the preferred builder, plugin reload, and the audit log. Can open any plan. |
 
-Roles are ranked (`user` < `integration_admin` < `app_admin`). They are set in Admin → Users, or on first sign-in by `OIDC_ADMIN_EMAILS`, `OIDC_DEFAULT_ROLE`, and `AUTH_TRUSTED_DEFAULT_ROLE`.
+Roles are ranked (`user` < `integration_admin` < `app_admin`). They are set in Admin → Users, or when an account is created by `OIDC_ADMIN_EMAILS`, `OIDC_DEFAULT_ROLE`, `SAML_ADMIN_EMAILS`, `SAML_ADMIN_GROUPS`, `SAML_DEFAULT_ROLE`, and `AUTH_TRUSTED_DEFAULT_ROLE`.
 
-## The helper
+## Plani, the helper
 
-The helper is the panel next to the sentence. It answers in four modes: break the thought into pieces, help with the blank in front of you, review the plan before handoff, and plain chat. An app administrator adds a provider under Admin → AI; one provider is active at a time, and a Test button checks the connection.
+Plani is the panel next to the sentence. It answers in four modes: break the thought into pieces, help with the blank in front of you, review the plan before handoff, and plain chat. An app administrator adds a provider under Admin → AI; one provider is active at a time, and a Test button checks the connection.
 
 | Kind | How it is called | Key |
 |---|---|---|
@@ -157,7 +162,7 @@ A plugin is a directory holding a `plugin.json` and, optionally, a `README.md`. 
 
 23 plugins ship built in: `bamboohr`, `confluence`, `core-transforms`, `file-share`, `gmail`, `google-calendar`, `google-drive`, `google-sheets`, `http-api`, `jira`, `microsoft-teams`, `monday`, `notion`, `outlook`, `report`, `salesforce`, `servicenow`, `sharepoint`, `slack`, `sql-database`, `web-rss`, `workday`, `zendesk`. Writing one is covered in [docs/plugins.md](docs/plugins.md).
 
-To add your own, point `PLUGINS_DIR` at a directory with one subdirectory per plugin (the image uses `/plugins`; compose mounts `./plugins-extra` there). Plugins load at start and on Admin → Integrations → Reload. Check a directory before shipping it with `npm run validate-plugins`. Administrators can disable a plugin, hide its objects, actions, or operations, and replace its helper guidance and access notes; users only ever see the resulting catalog.
+To add your own, point `PLUGINS_DIR` at a directory with one subdirectory per plugin (the image uses `/plugins`; compose mounts `./plugins-extra` there). Plugins load at start and on Admin → Integrations → Reload. Check a directory before shipping it with `npm run validate-plugins`. Administrators can disable a plugin, hide its objects, actions, or operations, and replace the guidance Plani reads and its access notes; users only ever see the resulting catalog.
 
 ## Handoff
 
@@ -170,12 +175,14 @@ The Handoff tab renders the plan as a document: the thought, things to remember,
 Details and the threat model are in [docs/security.md](docs/security.md). In short:
 
 - Passwords are hashed with scrypt. Sessions are random tokens stored in SQLite, sent as an `HttpOnly`, `SameSite=Lax` cookie, `Secure` when `BASE_URL` is https.
-- Single sign-on uses OpenID Connect authorization code with PKCE, `state`, and `nonce`, through `openid-client`. It is tested against a mock provider (`oauth2-mock-server`), not against a specific vendor.
-- Trusted-header sign-in (for oauth2-proxy and similar) can require a shared secret in `X-Piecewise-Proxy-Token`, so the identity header cannot be spoofed from inside the network.
-- State-changing API calls are rejected when the `Origin` header does not match the host or `BASE_URL`.
+- Single sign-on uses OpenID Connect authorization code with PKCE, `state`, and `nonce`, through `openid-client`, or SAML 2.0 through `@node-saml/node-saml` with signed assertions, issuer and audience checks, and replay protection. Both are tested against mock providers, not against a specific vendor.
+- `SAML_ENFORCE` makes SAML the only sign-in method and ends every session that did not come through it.
+- SCIM provisioning is authenticated by bearer tokens that are shown once and stored hashed; the session cookie is never accepted on `/api/scim/`.
+- Trusted-header sign-in (for oauth2-proxy and similar) can require a shared secret in `X-Planifold-Proxy-Token`, so the identity header cannot be spoofed from inside the network.
+- State-changing API calls are rejected when the `Origin` header does not match the host or `BASE_URL`, except the SAML assertion consumer and the SCIM endpoints, which do not use cookies.
 - AI provider keys are encrypted at rest (AES-256-GCM, key derived from `APP_SECRET`).
 - Responses carry a Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and a restrictive `Permissions-Policy`. API responses are `no-store`.
-- Rate limits: 600 requests per minute per client, 10 per minute on sign-in, 5 on setup, 30 on helper calls.
+- Rate limits: 600 requests per minute per client, 10 per minute on sign-in, 5 on setup, 30 on Plani.
 - Administrative actions are written to an audit log readable in Admin → Audit.
 - The container runs as a non-root user with a 1 MB request body limit.
 
@@ -185,7 +192,7 @@ Known limits: one process, one SQLite file. There is no clustering, external dat
 
 ```
 shared/         Types, manifest schema, grammar, handoff rendering (used by server and web)
-server/         Fastify API: auth, plans, helper, plugins, admin; SQLite via better-sqlite3
+server/         Fastify API: auth (password, OIDC, SAML), SCIM, plans, helper, plugins, admin; SQLite via better-sqlite3
 web/            React app (Vite); built output is served by the server
 plugins/        The 23 built-in plugin manifests
 plugins-extra/  Drop-in directory for your own plugins (mounted at /plugins by compose)
@@ -204,7 +211,7 @@ compose.yaml    Compose file for podman compose or docker compose
 npm ci
 npm run dev              # server on :3000 with reload, web on :5173 proxying /api
 npm run typecheck        # every workspace
-npm test                 # vitest: shared (grammar) and server (auth, plans, helper, OIDC)
+npm test                 # vitest: shared (grammar) and server (auth, plans, helper, OIDC, SAML, SCIM)
 npm run validate-plugins # every plugins/<id>/plugin.json against the schema, plus a grammar smoke test
 npm run build            # shared typecheck, web bundle, server bundle (esbuild -> server/dist/server.js)
 npm run test:e2e         # Playwright against a running app at PW_BASE_URL (default http://localhost:3210)
@@ -214,12 +221,12 @@ The end-to-end tests need Chrome and a running instance; CI starts one with `NOD
 
 ## License
 
-Piecewise is copyright Chris Tagliaferro and is licensed to the public under the **GNU Affero General Public License v3.0 or later** (`LICENSE`). In plain terms:
+Planifold is copyright Chris Tagliaferro and is licensed to the public under the **GNU Affero General Public License v3.0 or later** (`LICENSE`). In plain terms:
 
 - You may clone, run, modify, and redistribute it, including inside a company.
 - Keep the copyright and license notices; the original attribution stays with the code.
-- If you modify Piecewise and let people use it, including over a network, you must make the source of your modified version available to them under the same license. Hosting your fork in a public repository is the simplest way to comply.
+- If you modify Planifold and let people use it, including over a network, you must make the source of your modified version available to them under the same license. Hosting your fork in a public repository is the simplest way to comply.
 
-**Morning Brew Inc.** holds a separate, exclusive, unconditional license to use and modify Piecewise as it pleases, without the conditions above. See `LICENSE-MORNING-BREW.md`.
+**Morning Brew Inc.** holds a separate, exclusive, unconditional license to use and modify Planifold as it pleases, without the conditions above. See `LICENSE-MORNING-BREW.md`.
 
 Contributions are accepted under the terms in `CONTRIBUTING.md`, which allow the copyright holder to include them in both licenses.

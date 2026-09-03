@@ -1,4 +1,4 @@
-import { PIECE_KIND_LABEL, type PieceKind } from "@piecewise/shared";
+import { PIECE_KIND_LABEL, type PieceKind } from "@planifold/shared";
 import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useMemo } from "react";

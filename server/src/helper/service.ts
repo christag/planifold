@@ -1,4 +1,4 @@
-import { analyzePlan, buildHandoff, buildSentence, renderHandoffMarkdown, type Catalog, type PieceData, type PlanData } from "@piecewise/shared";
+import { analyzePlan, buildHandoff, buildSentence, renderHandoffMarkdown, type Catalog, type PieceData, type PlanData } from "@planifold/shared";
 import type { FastifyBaseLogger } from "fastify";
 import type { SecretBox } from "../crypto.js";
 import type { Db } from "../db/index.js";

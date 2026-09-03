@@ -74,7 +74,7 @@ export function PlansPage() {
               </button>
             }
           >
-            Write down what you want to happen, in your own words. Piecewise will help you break it into pieces.
+            Write down what you want to happen, in your own words. Planifold will help you break it into pieces.
           </EmptyState>
         </div>
       ) : (

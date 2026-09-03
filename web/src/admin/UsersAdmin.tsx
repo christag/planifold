@@ -149,7 +149,8 @@ export function UsersAdmin() {
                     </select>
                   </td>
                   <td className="small muted">
-                    {u.authSource === "local" ? "password" : u.authSource === "oidc" ? "SSO" : "network"}
+                    {u.authSource === "local" ? "password" : u.authSource === "oidc" ? "SSO (OIDC)" : u.authSource === "saml" ? "SSO (SAML)" : u.authSource === "scim" ? "SSO" : "network"}
+                    {u.scimManaged && <span className="pill" style={{ marginLeft: 6 }} title="Created or updated by your identity provider through SCIM">provisioned</span>}
                     {u.mustChangePassword && <span className="pill warn" style={{ marginLeft: 6 }}>temp password</span>}
                     {u.disabled && <span className="pill danger" style={{ marginLeft: 6 }}>disabled</span>}
                   </td>

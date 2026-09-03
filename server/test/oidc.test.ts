@@ -15,7 +15,7 @@ describe("OpenID Connect sign-in", () => {
     });
     t = await createTestApp({
       OIDC_ISSUER: idp.issuer.url!,
-      OIDC_CLIENT_ID: "piecewise",
+      OIDC_CLIENT_ID: "planifold",
       OIDC_CLIENT_SECRET: "secret",
       OIDC_ADMIN_EMAILS: "dana@example.com",
       BASE_URL: "http://localhost:3000",
@@ -48,7 +48,7 @@ describe("OpenID Connect sign-in", () => {
     expect(cb.statusCode).toBe(302);
     expect(cb.headers.location).toBe("/plans/abc");
     const session = cookieOf(cb);
-    expect(session).toContain("piecewise_session=");
+    expect(session).toContain("planifold_session=");
 
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: session } });
     expect(me.json().user).toMatchObject({ email: "dana@example.com", name: "Dana Reyes", role: "app_admin", authSource: "oidc" });

@@ -38,7 +38,7 @@ export function SetupPage() {
         <div className="auth-head">
           <Logo />
         </div>
-        <h1>Set up Piecewise</h1>
+        <h1>Set up Planifold</h1>
         <p className="muted small">This creates the first app administrator. You can add everyone else afterwards, or connect single sign-on.</p>
         {error && (
           <div className="notice danger" role="alert">
@@ -49,7 +49,7 @@ export function SetupPage() {
           <div className="field">
             <label htmlFor="org">Organization name</label>
             <input id="org" className="input" value={form.orgName} onChange={set("orgName")} placeholder="Acme Corp" autoFocus />
-            <span className="hint">Shown on the sign-in page and used by the helper.</span>
+            <span className="hint">Shown on the sign-in page and used by Plani.</span>
           </div>
           <div className="field">
             <label htmlFor="name">Your name</label>

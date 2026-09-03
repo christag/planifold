@@ -59,7 +59,7 @@ export function NewPlanPage() {
           <button className="btn primary lg" disabled={busy || !thought.trim()}>
             {busy ? "Starting…" : "Break it into pieces"} <ArrowRight />
           </button>
-          <span className="small muted">You'll fill in one piece at a time. The helper follows along.</span>
+          <span className="small muted">You'll fill in one piece at a time. Plani follows along.</span>
         </div>
       </form>
     </Shell>

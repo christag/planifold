@@ -13,6 +13,15 @@ declare module "fastify" {
     user: User | null;
     sessionId: string | null;
   }
+  interface FastifyContextConfig {
+    /**
+     * Skip the same-origin check for this route. Only for endpoints that are
+     * meant to be posted to from another site and that do not rely on the
+     * session cookie for authentication: the SAML assertion consumer (the
+     * identity provider's page posts to it) and SCIM (bearer token).
+     */
+    allowCrossOrigin?: boolean;
+  }
 }
 
 const ROLE_RANK: Record<Role, number> = { user: 0, integration_admin: 1, app_admin: 2 };
@@ -41,8 +50,10 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance, opt
     // Same-origin check for every state-changing request. Cookies are
     // SameSite=Lax already; this closes the gap for older browsers and for
     // non-browser clients that present a cookie. An unparseable or "null"
-    // Origin is rejected rather than ignored.
-    if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    // Origin is rejected rather than ignored. Routes that opt out by config
+    // (decided by the matched route, never by the raw url) are the ones a
+    // foreign site must be able to post to.
+    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && !req.routeOptions?.config?.allowCrossOrigin) {
       const origin = req.headers.origin;
       if (origin !== undefined) {
         let originHost: string | null = null;
@@ -60,7 +71,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance, opt
 
     const sid = req.cookies[SESSION_COOKIE];
     if (sid) {
-      const user = findSessionUser(db, sid);
+      const user = findSessionUser(db, sid, config.auth.saml?.enforce ? "saml" : undefined);
       if (user) {
         req.user = user;
         req.sessionId = sid;
@@ -71,7 +82,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance, opt
     const th = config.auth.trustedHeader;
     if (th) {
       if (th.proxyToken) {
-        const presented = req.headers["x-piecewise-proxy-token"];
+        const presented = req.headers["x-planifold-proxy-token"];
         if (presented !== th.proxyToken) return;
       }
       const email = req.headers[th.emailHeader];

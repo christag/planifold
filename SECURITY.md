@@ -1,21 +1,21 @@
 # Security policy
 
-Piecewise is a planning tool. It stores plans, user accounts, sessions, and AI provider API keys. It does not run automations or hold credentials for the systems its plugins describe. Even so, a bug in authentication, session handling, role checks, or key storage matters. Please report it privately.
+Planifold is a planning tool. It stores plans, user accounts, sessions, and AI provider API keys. It does not run automations or hold credentials for the systems its plugins describe. Even so, a bug in authentication, session handling, role checks, or key storage matters. Please report it privately.
 
 ## Reporting a vulnerability
 
 Do not open a public issue for a security bug.
 
-Use GitHub Security Advisories for the repository `christag/piecewise`:
+Use GitHub Security Advisories for the repository `christag/planifold`:
 
 ```
-https://github.com/christag/piecewise/security/advisories/new
+https://github.com/christag/planifold/security/advisories/new
 ```
 
 Include what you can of the following:
 
-- The version or commit you tested (`VERSION` in `server/src/config.ts`, or the image tag from `ghcr.io/christag/piecewise`).
-- How Piecewise was configured: which sign-in methods were on (`AUTH_LOCAL`, `OIDC_*`, `AUTH_TRUSTED_HEADER`), whether it sat behind a proxy (`TRUST_PROXY`), and which AI provider was configured.
+- The version or commit you tested (`VERSION` in `server/src/config.ts`, or the image tag from `ghcr.io/christag/planifold`).
+- How Planifold was configured: which sign-in methods were on (`AUTH_LOCAL`, `OIDC_*`, `AUTH_TRUSTED_HEADER`), whether it sat behind a proxy (`TRUST_PROXY`), and which AI provider was configured.
 - Steps to reproduce, with requests and responses where relevant.
 - The impact as you understand it: which role gains what, or which data is exposed.
 - Whether you found it in the server, the web app, a plugin manifest, or a dependency.
@@ -33,7 +33,7 @@ Only the latest commit on `main` is supported. There are no maintained release b
 - Password storage: scrypt (`server/src/crypto.ts`).
 - Sessions: random cookie tokens stored in SQLite, `httpOnly`, `sameSite=lax` (`server/src/auth/session.ts`).
 - OpenID Connect: authorization code with PKCE and state, tested only against a mock provider (`server/src/auth/oidc.ts`).
-- Trusted-header sign-in: the `X-Piecewise-Proxy-Token` check that stops header spoofing (`server/src/auth/plugin.ts`).
+- Trusted-header sign-in: the `X-Planifold-Proxy-Token` check that stops header spoofing (`server/src/auth/plugin.ts`).
 - API keys at rest: AES-256-GCM with a key derived from `APP_SECRET` (`server/src/crypto.ts`).
 - Role checks on admin and integration routes (`server/src/admin/`).
 - Plugin manifest loading and overrides (`server/src/plugins/registry.ts`, `shared/src/manifest.ts`).

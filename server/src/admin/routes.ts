@@ -9,6 +9,8 @@ import { now, parseJson } from "../db/index.js";
 import { audit, publicUser, uuid, type ProviderRow } from "../db/models.js";
 import { badRequest, conflict, notFound } from "../errors.js";
 import { listPlans } from "../plans/repo.js";
+import { SCIM_BASE } from "../scim/routes.js";
+import { createScimToken, deleteScimToken, findScimToken, listScimTokens, publicScimToken } from "../scim/tokens.js";
 
 const Role = z.enum(["user", "integration_admin", "app_admin"]);
 const UserCreate = z.object({ email: z.string().email(), name: z.string().min(1).max(120), role: Role.default("user"), password: z.string().min(10).max(200).optional() });
@@ -27,6 +29,7 @@ const SettingsPatch = z.object({
   orgGuidance: z.string().max(8000).optional(),
   preferredBuilder: z.string().max(200).optional(),
 });
+const ScimTokenCreate = z.object({ label: z.string().min(1).max(80) });
 const PluginPatch = z.object({
   enabled: z.boolean().optional(),
   ownerId: z.string().nullable().optional(),
@@ -68,7 +71,7 @@ export function publicProvider(p: ProviderRow, box: { open(s: string): string })
 }
 
 export async function adminRoutes(app: FastifyInstance, opts: { ctx: AppContext }) {
-  const { db, registry, box, settings, helper } = opts.ctx;
+  const { db, registry, box, settings, helper, config, saml } = opts.ctx;
 
   // This plugin is encapsulated, so the hook covers exactly the admin routes,
   // whatever the request url looks like on the wire.
@@ -136,6 +139,57 @@ export async function adminRoutes(app: FastifyInstance, opts: { ctx: AppContext 
     if (!target) throw notFound("That user doesn't exist.");
     deleteUser(db, id);
     audit(db, { id: actor.id, email: actor.email }, "user.deleted", id, { email: target.email });
+    return { ok: true };
+  });
+
+  // Sign-in methods and SCIM provisioning
+  const describeAuth = (req: { protocol: string; headers: { host?: string } }) => ({
+    methods: {
+      local: config.auth.local,
+      oidc: config.auth.oidc ? { label: config.auth.oidc.buttonLabel, issuer: config.auth.oidc.issuer } : null,
+      saml: config.auth.saml
+        ? {
+            label: config.auth.saml.buttonLabel,
+            enforced: config.auth.saml.enforce,
+            entityId: saml.entityId,
+            acsUrl: saml.callbackUrl,
+            metadataUrl: saml.metadataUrl,
+            idpIssuer: config.auth.saml.idpIssuer,
+            idpSsoUrl: config.auth.saml.entryPoint,
+            allowIdpInitiated: config.auth.saml.allowIdpInitiated,
+            attributes: config.auth.saml.attributes,
+          }
+        : null,
+      trustedHeader: !!config.auth.trustedHeader,
+    },
+    scim: {
+      // Absolute, because an administrator pastes this into the identity
+      // provider. Without BASE_URL, fall back to how this request arrived.
+      baseUrl: `${config.baseUrl ?? `${req.protocol}://${req.headers.host ?? "localhost"}`}${SCIM_BASE}`,
+      tokens: listScimTokens(db).map(publicScimToken),
+      groups: (
+        db.prepare("SELECT g.id, g.display_name, g.external_id, g.updated_at, COUNT(m.user_id) AS members FROM scim_groups g LEFT JOIN scim_group_members m ON m.group_id = g.id GROUP BY g.id ORDER BY g.display_name").all() as Array<{ id: string; display_name: string; external_id: string | null; updated_at: string; members: number }>
+      ).map((g) => ({ id: g.id, displayName: g.display_name, externalId: g.external_id, members: g.members, updatedAt: g.updated_at })),
+    },
+  });
+
+  app.get("/api/admin/auth", async (req) => describeAuth(req));
+
+  app.post("/api/admin/scim/tokens", async (req) => {
+    const actor = requireRole(req, "app_admin");
+    const body = ScimTokenCreate.parse(req.body);
+    const { row, secret } = createScimToken(db, body.label, actor.id);
+    audit(db, { id: actor.id, email: actor.email }, "scim.token.created", row.id, { label: row.label });
+    return { token: publicScimToken(row), secret };
+  });
+
+  app.delete("/api/admin/scim/tokens/:id", async (req) => {
+    const actor = requireRole(req, "app_admin");
+    const id = (req.params as { id: string }).id;
+    const row = findScimToken(db, id);
+    if (!row) throw notFound("That token doesn't exist.");
+    deleteScimToken(db, id);
+    audit(db, { id: actor.id, email: actor.email }, "scim.token.revoked", id, { label: row.label });
     return { ok: true };
   });
 

@@ -1,4 +1,4 @@
-import { PIECE_KIND_LABEL, PIECE_KINDS } from "@piecewise/shared";
+import { PIECE_KIND_LABEL, PIECE_KINDS } from "@planifold/shared";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { copyText, download } from "../lib/format.js";

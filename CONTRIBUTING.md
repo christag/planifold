@@ -1,4 +1,4 @@
-# Contributing to Piecewise
+# Contributing to Planifold
 
 ## Setup
 
@@ -32,7 +32,8 @@ Other scripts:
 | `shared/src/handoff.ts` | Renders a plan as Markdown and JSON |
 | `server/src/config.ts` | Environment variables and defaults |
 | `server/src/app.ts` | Fastify app: routes, headers, static files |
-| `server/src/auth/` | Local passwords, cookie sessions, OIDC, trusted-header sign-in |
+| `server/src/auth/` | Local passwords, cookie sessions, OIDC, SAML, trusted-header sign-in |
+| `server/src/scim/` | SCIM 2.0 provisioning: bearer tokens, filters, Users and Groups endpoints |
 | `server/src/plans/`, `server/src/helper/`, `server/src/admin/` | The API |
 | `server/src/helper/providers/` | Anthropic and OpenAI-compatible providers; `fallback.ts` is the rule-based mode |
 | `server/src/db/` | `better-sqlite3` and append-only migrations |
@@ -43,7 +44,7 @@ Other scripts:
 
 ## Tests
 
-Unit tests use vitest in `shared/test` (grammar and handoff) and `server/test` (auth, OIDC, plans, helper). The server tests build the app in memory with a temporary data directory (`server/test/helpers.ts`) and drive it with `app.inject`, so no server needs to be running.
+Unit tests use vitest in `shared/test` (grammar and handoff) and `server/test` (auth, OIDC, SAML, SCIM, plans, helper). The server tests build the app in memory with a temporary data directory (`server/test/helpers.ts`) and drive it with `app.inject`, so no server needs to be running. The SAML tests generate a throwaway certificate with `selfsigned` and sign responses with `xml-crypto`, so no identity provider is needed either.
 
 ```sh
 npm test                       # both workspaces
@@ -58,7 +59,7 @@ APP_SECRET=dev DATA_DIR=/tmp/pw-data PORT=3210 NODE_ENV=production node server/d
 npm run test:e2e
 ```
 
-This mirrors `.github/workflows/ci.yml`. The e2e tests do not configure an AI provider, so the helper runs in rule-based mode.
+This mirrors `.github/workflows/ci.yml`. The e2e tests do not configure an AI provider, so Plani runs in rule-based mode.
 
 ## Adding a plugin
 
@@ -70,7 +71,7 @@ The manifest format is documented in [docs/plugins.md](docs/plugins.md); the sch
 npx tsx scripts/validate-plugins.ts
 ```
 
-`shared/test/helpers.ts` loads `gmail`, `monday`, `google-sheets`, `report`, and `core-transforms` for the grammar tests, and `e2e/piecewise.spec.ts` asserts exact sentences built from Gmail and the core transformations. Changing labels or ids in those manifests changes test expectations.
+`shared/test/helpers.ts` loads `gmail`, `monday`, `google-sheets`, `report`, and `core-transforms` for the grammar tests, and `e2e/planifold.spec.ts` asserts exact sentences built from Gmail and the core transformations. Changing labels or ids in those manifests changes test expectations.
 
 ## Adding a transformation
 
@@ -116,7 +117,7 @@ Add or update tests with behavior changes: grammar changes belong in `shared/tes
 
 ## Licensing of contributions
 
-Piecewise is licensed to the public under the AGPL-3.0-or-later, and the copyright holder also grants Morning Brew Inc. a separate unconditional license (`LICENSE-MORNING-BREW.md`). So that both can keep working, every contribution is accepted on these terms:
+Planifold is licensed to the public under the AGPL-3.0-or-later, and the copyright holder also grants Morning Brew Inc. a separate unconditional license (`LICENSE-MORNING-BREW.md`). So that both can keep working, every contribution is accepted on these terms:
 
 - You license your contribution under the AGPL-3.0-or-later, like the rest of the project.
 - You also grant Chris Tagliaferro a perpetual, irrevocable, worldwide, royalty-free license to use, modify, distribute, and sublicense your contribution, including under the additional grant to Morning Brew Inc.

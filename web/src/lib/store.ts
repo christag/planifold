@@ -1,4 +1,4 @@
-import type { Catalog } from "@piecewise/shared";
+import type { Catalog } from "@planifold/shared";
 import { create } from "zustand";
 import { api, ApiError } from "./api.js";
 import type { AuthConfig, HelperStatus, User } from "./types.js";
@@ -31,7 +31,7 @@ interface AppState {
 
 function readTheme(): Theme {
   try {
-    const t = localStorage.getItem("piecewise.theme");
+    const t = localStorage.getItem("planifold.theme");
     return t === "light" || t === "dark" ? t : "system";
   } catch {
     return "system";
@@ -94,7 +94,7 @@ export const useApp = create<AppState>((set, get) => ({
 
   setTheme(theme) {
     try {
-      localStorage.setItem("piecewise.theme", theme);
+      localStorage.setItem("planifold.theme", theme);
     } catch {
       /* private mode */
     }

@@ -1,4 +1,4 @@
-import { PIECE_KIND_LABEL, PIECE_KINDS, type PieceKind } from "@piecewise/shared";
+import { PIECE_KIND_LABEL, PIECE_KINDS, type PieceKind } from "@planifold/shared";
 import { useState } from "react";
 import { usePlan } from "../lib/planStore.js";
 import { Plus, X } from "../ui/icons.js";
@@ -48,7 +48,7 @@ export function Rail() {
 
       <section className="rail-section">
         <div className="eyebrow">Things to remember</div>
-        {plan.facts.length === 0 && <p className="tiny muted">Details a builder must know. The helper adds them as you talk; you can too.</p>}
+        {plan.facts.length === 0 && <p className="tiny muted">Details a builder must know. Plani adds them as you talk; you can too.</p>}
         <ul className="rail-facts">
           {plan.facts.map((f, i) => (
             <li key={`${i}-${f}`}>

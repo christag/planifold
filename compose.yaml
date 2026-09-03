@@ -1,8 +1,8 @@
 # docker compose up -d   /   podman compose up -d
 services:
-  piecewise:
+  planifold:
     build: .
-    image: ghcr.io/christag/piecewise:latest
+    image: ghcr.io/christag/planifold:latest
     ports:
       - "3000:3000"
     environment:
@@ -16,12 +16,17 @@ services:
       OIDC_ISSUER: ${OIDC_ISSUER:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      SAML_IDP_SSO_URL: ${SAML_IDP_SSO_URL:-}
+      SAML_IDP_ISSUER: ${SAML_IDP_ISSUER:-}
+      SAML_IDP_CERT: ${SAML_IDP_CERT:-}
+      SAML_ADMIN_EMAILS: ${SAML_ADMIN_EMAILS:-}
+      SAML_ENFORCE: ${SAML_ENFORCE:-false}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     volumes:
-      - piecewise-data:/data
+      - planifold-data:/data
       # Drop extra plugin directories here; they load on start or via Admin → Integrations → Reload.
       - ./plugins-extra:/plugins:ro
     restart: unless-stopped
 
 volumes:
-  piecewise-data:
+  planifold-data:

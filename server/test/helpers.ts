@@ -12,7 +12,7 @@ export interface TestApp {
 }
 
 export async function createTestApp(env: Record<string, string> = {}, overrides: Partial<Config> = {}): Promise<TestApp> {
-  const dir = mkdtempSync(join(process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, "tmp") : tmpdir(), "piecewise-test-"));
+  const dir = mkdtempSync(join(process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, "tmp") : tmpdir(), "planifold-test-"));
   const saved: Record<string, string | undefined> = {};
   const base: Record<string, string> = { NODE_ENV: "test", DATA_DIR: dir, APP_SECRET: "test-secret-do-not-use", LOG_LEVEL: "silent", BASE_URL: "", OIDC_ISSUER: "", AUTH_TRUSTED_HEADER: "", BOOTSTRAP_ADMIN_EMAIL: "", ...env };
   for (const [k, v] of Object.entries(base)) {

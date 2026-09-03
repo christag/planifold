@@ -6,13 +6,13 @@ import { X } from "./icons.js";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="logo" aria-label="Piecewise">
+    <span className="logo" aria-label="Planifold">
       <span className="logo-mark" aria-hidden>
         <i className="kind-input" />
         <i className="kind-transform" />
         <i className="kind-output" />
       </span>
-      {!compact && <span className="logo-word serif">Piecewise</span>}
+      {!compact && <span className="logo-word serif">Planifold</span>}
     </span>
   );
 }
