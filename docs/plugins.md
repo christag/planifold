@@ -1,6 +1,6 @@
 # Writing a plugin
 
-A plugin describes one system to Piecewise: what can be read from it, what can be sent to it, and how the organization wants it used. It is a directory holding a `plugin.json` and, optionally, a `README.md`. There is no code. The grammar engine builds every sentence a person sees from the manifest, so wording is the work.
+A plugin describes one system to Planifold: what can be read from it, what can be sent to it, and how the organization wants it used. It is a directory holding a `plugin.json` and, optionally, a `README.md`. There is no code. The grammar engine builds every sentence a person sees from the manifest, so wording is the work.
 
 ```
 plugins/

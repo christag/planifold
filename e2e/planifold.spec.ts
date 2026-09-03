@@ -138,7 +138,7 @@ test.describe("desktop", () => {
     await expect(page.locator(".plugin-card")).toHaveCount(23);
     const gmail = page.locator(".plugin-card", { hasText: "Gmail" }).first();
     await gmail.getByRole("button", { name: "Edit" }).click();
-    await gmail.getByLabel("Guidance for the helper").fill(`Only the shared mailbox automations-${stamp}@example.com may send.`);
+    await gmail.getByLabel("Guidance for Plani").fill(`Only the shared mailbox automations-${stamp}@example.com may send.`);
     await gmail.getByRole("button", { name: "Save changes" }).click();
     await expect(page.locator(".toast")).toContainText("Saved");
     await shot(page, "15-admin-integrations");
@@ -173,8 +173,8 @@ test.describe("mobile", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Open the helper" }).click();
-    await expect(page.getByRole("dialog", { name: "Helper" })).toBeVisible();
+    await page.getByRole("button", { name: "Open Plani" }).click();
+    await expect(page.getByRole("dialog", { name: "Plani" })).toBeVisible();
     await shot(page, "m5-helper-sheet");
     await page.getByRole("button", { name: "Done" }).click();
 

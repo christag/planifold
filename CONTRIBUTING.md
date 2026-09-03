@@ -1,4 +1,4 @@
-# Contributing to Piecewise
+# Contributing to Planifold
 
 ## Setup
 
@@ -59,7 +59,7 @@ APP_SECRET=dev DATA_DIR=/tmp/pw-data PORT=3210 NODE_ENV=production node server/d
 npm run test:e2e
 ```
 
-This mirrors `.github/workflows/ci.yml`. The e2e tests do not configure an AI provider, so the helper runs in rule-based mode.
+This mirrors `.github/workflows/ci.yml`. The e2e tests do not configure an AI provider, so Plani runs in rule-based mode.
 
 ## Adding a plugin
 
@@ -71,7 +71,7 @@ The manifest format is documented in [docs/plugins.md](docs/plugins.md); the sch
 npx tsx scripts/validate-plugins.ts
 ```
 
-`shared/test/helpers.ts` loads `gmail`, `monday`, `google-sheets`, `report`, and `core-transforms` for the grammar tests, and `e2e/piecewise.spec.ts` asserts exact sentences built from Gmail and the core transformations. Changing labels or ids in those manifests changes test expectations.
+`shared/test/helpers.ts` loads `gmail`, `monday`, `google-sheets`, `report`, and `core-transforms` for the grammar tests, and `e2e/planifold.spec.ts` asserts exact sentences built from Gmail and the core transformations. Changing labels or ids in those manifests changes test expectations.
 
 ## Adding a transformation
 
@@ -117,7 +117,7 @@ Add or update tests with behavior changes: grammar changes belong in `shared/tes
 
 ## Licensing of contributions
 
-Piecewise is licensed to the public under the AGPL-3.0-or-later, and the copyright holder also grants Morning Brew Inc. a separate unconditional license (`LICENSE-MORNING-BREW.md`). So that both can keep working, every contribution is accepted on these terms:
+Planifold is licensed to the public under the AGPL-3.0-or-later, and the copyright holder also grants Morning Brew Inc. a separate unconditional license (`LICENSE-MORNING-BREW.md`). So that both can keep working, every contribution is accepted on these terms:
 
 - You license your contribution under the AGPL-3.0-or-later, like the rest of the project.
 - You also grant Chris Tagliaferro a perpetual, irrevocable, worldwide, royalty-free license to use, modify, distribute, and sublicense your contribution, including under the additional grant to Morning Brew Inc.

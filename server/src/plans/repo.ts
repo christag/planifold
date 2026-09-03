@@ -1,4 +1,4 @@
-import { cleanPiece, type Catalog, type PieceData, type PieceKind, type SlotValue } from "@piecewise/shared";
+import { cleanPiece, type Catalog, type PieceData, type PieceKind, type SlotValue } from "@planifold/shared";
 import type { Db } from "../db/index.js";
 import { now } from "../db/index.js";
 import { toMessage, toPiece, toPlan, uuid, type HelperMessageRow, type Piece, type PieceRow, type Plan, type PlanRow } from "../db/models.js";

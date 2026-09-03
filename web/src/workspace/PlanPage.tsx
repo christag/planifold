@@ -102,7 +102,7 @@ export function PlanPage() {
           <ChevronLeft />
         </Link>
         {!mobile && (
-          <Link to="/" className="topbar-logo" aria-label="Piecewise">
+          <Link to="/" className="topbar-logo" aria-label="Planifold">
             <Logo compact />
           </Link>
         )}
@@ -215,11 +215,11 @@ export function PlanPage() {
 
       {mobile && (
         <>
-          <button className="helper-fab" onClick={() => setHelperOpen(true)} aria-label="Open the helper">
-            <Sparkles /> Helper
+          <button className="helper-fab" onClick={() => setHelperOpen(true)} aria-label="Open Plani">
+            <Sparkles /> Plani
           </button>
           {helperOpen && (
-            <Popover anchor={null} onClose={() => setHelperOpen(false)} label="Helper" sheet>
+            <Popover anchor={null} onClose={() => setHelperOpen(false)} label="Plani" sheet>
               <div className="sheet-helper">
                 <HelperPanel onClose={() => setHelperOpen(false)} />
               </div>

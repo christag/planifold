@@ -16,13 +16,16 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(params.get("error"));
   const [busy, setBusy] = useState(false);
+  const signedOut = params.get("signedout") === "1";
 
   const samlUrl = `/api/auth/saml/start?redirect=${encodeURIComponent(next)}`;
   const oidcUrl = `/api/auth/oidc/start?redirect=${encodeURIComponent(next)}`;
   // With SAML enforced there is nothing to choose: go straight to the identity
   // provider. An error from a previous attempt is shown first so a failing
-  // provider cannot bounce the person back and forth.
-  const autoSaml = !!authConfig?.saml?.enforced && !user && !error;
+  // provider cannot bounce the person back and forth, and someone who has just
+  // signed out is left on this page rather than signed straight back in by a
+  // session the identity provider still holds.
+  const autoSaml = !!authConfig?.saml?.enforced && !user && !error && !signedOut;
   useEffect(() => {
     if (autoSaml) window.location.assign(samlUrl);
   }, [autoSaml, samlUrl]);
@@ -59,6 +62,11 @@ export function LoginPage() {
         {error && (
           <div className="notice danger" role="alert">
             {error}
+          </div>
+        )}
+        {signedOut && !error && (
+          <div className="notice" role="status">
+            You're signed out. Your identity provider may still know you, so signing in again can be immediate.
           </div>
         )}
         {autoSaml ? (

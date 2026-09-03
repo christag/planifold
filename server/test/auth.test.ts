@@ -35,7 +35,7 @@ describe("authentication and roles", () => {
     const change = await t.app.inject({ method: "POST", url: "/api/auth/password", headers: { cookie: u.cookie }, payload: { newPassword: "a-much-better-password" } });
     expect(change.statusCode).toBe(200);
     const relogin = await login(t, "sam@example.com", "a-much-better-password");
-    expect(relogin).toContain("piecewise_session=");
+    expect(relogin).toContain("planifold_session=");
   });
 
   it("keeps admin routes away from users and integration admins", async () => {
@@ -84,7 +84,7 @@ describe("trusted header authentication", () => {
   it("ignores the header without the proxy token, and creates the user with it", async () => {
     const spoof = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { "x-forwarded-email": "eve@example.com" } });
     expect(spoof.statusCode).toBe(401);
-    const ok = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { "x-forwarded-email": "pat@example.com", "x-forwarded-name": "Pat Lee", "x-piecewise-proxy-token": "proxy-secret" } });
+    const ok = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { "x-forwarded-email": "pat@example.com", "x-forwarded-name": "Pat Lee", "x-planifold-proxy-token": "proxy-secret" } });
     expect(ok.statusCode).toBe(200);
     expect(ok.json().user).toMatchObject({ email: "pat@example.com", name: "Pat Lee", role: "user", authSource: "trusted-header" });
   });
@@ -113,7 +113,7 @@ describe("bootstrap administrator", () => {
       const res = await t.app.inject({ method: "POST", url: "/api/auth/login", payload: { email: "boot@example.com", password: "bootstrap-password-1" } });
       expect(res.statusCode).toBe(200);
       expect(res.json().user).toMatchObject({ role: "app_admin", mustChangePassword: true });
-      expect(cookieOf(res)).toContain("piecewise_session=");
+      expect(cookieOf(res)).toContain("planifold_session=");
     } finally {
       await t.close();
     }

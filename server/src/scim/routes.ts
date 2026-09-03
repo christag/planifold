@@ -124,7 +124,7 @@ export async function scimRoutes(app: FastifyInstance, opts: { ctx: AppContext }
   app.get(`${SCIM_BASE}/ServiceProviderConfig`, async (req, reply) =>
     send(reply, 200, {
       schemas: ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
-      documentationUri: "https://github.com/christag/piecewise/blob/main/docs/deploy.md",
+      documentationUri: "https://github.com/christag/planifold/blob/main/docs/deploy.md",
       patch: { supported: true },
       bulk: { supported: false, maxOperations: 0, maxPayloadSize: 0 },
       filter: { supported: true, maxResults: MAX_PAGE },
@@ -213,8 +213,8 @@ export async function scimRoutes(app: FastifyInstance, opts: { ctx: AppContext }
     const f = userFields(body);
     if (findUserByEmail(db, f.email)) throw new ScimError(409, `A user with the userName ${f.email} already exists.`, "uniqueness");
     if (f.externalId && findUserByScimExternalId(db, f.externalId)) throw new ScimError(409, `A user with the externalId ${f.externalId} already exists.`, "uniqueness");
-    const s = config.auth.saml;
-    const role = s?.adminEmails.includes(f.email) ? "app_admin" : (s?.defaultRole ?? "user");
+    const p = config.auth.provisioning;
+    const role = p.adminEmails.includes(f.email) ? "app_admin" : p.defaultRole;
     let user = createUser(db, { email: f.email, name: f.name, role, authSource: "scim", scimExternalId: f.externalId, givenName: f.givenName, familyName: f.familyName });
     if (!f.active) user = updateUser(db, user.id, { disabled: true });
     audit(db, actor(req), "user.created", user.id, { via: "scim", email: user.email, role, active: f.active });
@@ -430,7 +430,7 @@ function primaryEmail(emails: Array<{ value: string; primary?: boolean }> | null
 
 function userFields(body: z.infer<typeof UserBody>): UserFields {
   const email = isEmail(body.userName) ? body.userName.trim().toLowerCase() : primaryEmail(body.emails);
-  if (!email) throw new ScimError(400, "userName must be an email address (or emails must carry one); Piecewise identifies people by email.", "invalidValue");
+  if (!email) throw new ScimError(400, "userName must be an email address (or emails must carry one); Planifold identifies people by email.", "invalidValue");
   const givenName = body.name?.givenName?.trim() || null;
   const familyName = body.name?.familyName?.trim() || null;
   const name = body.displayName?.trim() || body.name?.formatted?.trim() || [givenName, familyName].filter(Boolean).join(" ") || email.split("@")[0]!;

@@ -84,7 +84,7 @@ export function renderHandoffMarkdown(doc: HandoffDocument): string {
   L.push("");
   L.push(`> **The thought:** ${doc.plan.thought.trim() || "(not written down)"}`);
   L.push("");
-  L.push(`Status: ${doc.plan.status.replace("_", " ")} · Generated ${doc.generatedAt.slice(0, 10)} with Piecewise`);
+  L.push(`Status: ${doc.plan.status.replace("_", " ")} · Generated ${doc.generatedAt.slice(0, 10)} with Planifold`);
   L.push("");
   if (doc.plan.facts.length) {
     L.push("## Things to remember");

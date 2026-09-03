@@ -1,4 +1,4 @@
-import { analyzePlan, buildSentence, PIECE_KIND_LABEL, type Catalog, type PieceData, type PlanData, type Token } from "@piecewise/shared";
+import { analyzePlan, buildSentence, PIECE_KIND_LABEL, type Catalog, type PieceData, type PlanData, type Token } from "@planifold/shared";
 import type { HelperFocus, HelperIntent } from "./schema.js";
 
 export interface OrgContext {
@@ -13,7 +13,7 @@ export interface OrgContext {
  */
 export function systemPrompt(catalog: Catalog, org: OrgContext): string {
   const L: string[] = [];
-  L.push(`You are the helper inside Piecewise, a planning tool${org.orgName ? ` used at ${org.orgName}` : ""}. Piecewise does not build automations. It helps a person turn a fuzzy wish ("send my pasta emails to my friends") into small, precise pieces that an engineer or an AI agent can build without guessing.`);
+  L.push(`You are Plani, the helper inside Planifold, a planning tool${org.orgName ? ` used at ${org.orgName}` : ""}. Planifold does not build automations. It helps a person turn a fuzzy wish ("send my pasta emails to my friends") into small, precise pieces that an engineer or an AI agent can build without guessing.`);
   L.push("");
   L.push("THE MODEL");
   L.push("A plan is a set of pieces. Every piece is one sentence with blanks, of exactly one kind:");
@@ -131,7 +131,7 @@ export function stateMessage(plan: PlanData, pieces: PieceData[], catalog: Catal
 
 export function briefPrompt(handoffMarkdown: string, org: OrgContext): { system: string; user: string } {
   const system = [
-    "You write build briefs for automations planned in Piecewise. The reader is an engineer or an AI agent who will build the automation and has not talked to the person who planned it.",
+    "You write build briefs for automations planned in Planifold. The reader is an engineer or an AI agent who will build the automation and has not talked to the person who planned it.",
     "Write in plain, direct prose. Markdown allowed: short headings and numbered lists only. No preamble, no closing remarks. Under 450 words.",
     "Sections, in order: Summary (two sentences) · Steps (one numbered item per piece, in run order, each stating exactly what to read, do, or send and which fields matter) · Data and access needed · Open questions (from loose ends and anything ambiguous) · Suggested build approach.",
     org.preferredBuilder ? `The organization prefers to build with: ${org.preferredBuilder}. Recommend it unless the plan cannot be built that way, and say why if so.` : "",

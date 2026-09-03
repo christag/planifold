@@ -4,6 +4,9 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync, timingSafeEq
 export class SecretBox {
   private key: Buffer;
   constructor(appSecret: string) {
+    // A versioned domain separator, not a brand string. It keeps its original
+    // value through the rename to Planifold because changing it would make
+    // every already-stored provider API key impossible to decrypt.
     this.key = scryptSync(appSecret, "piecewise-secretbox", 32);
   }
   seal(plain: string): string {

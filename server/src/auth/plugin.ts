@@ -82,7 +82,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance, opt
     const th = config.auth.trustedHeader;
     if (th) {
       if (th.proxyToken) {
-        const presented = req.headers["x-piecewise-proxy-token"];
+        const presented = req.headers["x-planifold-proxy-token"];
         if (presented !== th.proxyToken) return;
       }
       const email = req.headers[th.emailHeader];

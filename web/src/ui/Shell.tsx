@@ -38,7 +38,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
     <div className="shell">
       <header className="topbar">
         <div className="topbar-inner">
-          <Link to="/" className="topbar-logo" aria-label="Piecewise home">
+          <Link to="/" className="topbar-logo" aria-label="Planifold home">
             <Logo />
           </Link>
           {authConfig?.orgName && <span className="topbar-org hide-mobile">{authConfig.orgName}</span>}
@@ -73,7 +73,10 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
                       role="menuitem"
                       onClick={async () => {
                         await logout();
-                        navigate("/login");
+                        // The marker stops an enforced-SAML sign-in page from
+                        // bouncing straight back to the identity provider,
+                        // which would undo the sign-out the person just asked for.
+                        navigate("/login?signedout=1");
                       }}
                     >
                       <LogOut /> Sign out

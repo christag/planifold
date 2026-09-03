@@ -13,7 +13,7 @@ const BASE_URL = "http://localhost:3000";
 const SP_ENTITY_ID = `${BASE_URL}/api/auth/saml/metadata`;
 const ACS_URL = `${BASE_URL}/api/auth/saml/callback`;
 const IDP_ISSUER = "http://www.okta.com/exk1test";
-const IDP_SSO_URL = "https://dev-1.okta.com/app/piecewise/exk1test/sso/saml";
+const IDP_SSO_URL = "https://dev-1.okta.com/app/planifold/exk1test/sso/saml";
 
 let pems: { private: string; cert: string };
 let otherPems: { private: string; cert: string };
@@ -113,7 +113,7 @@ const SAML_ENV = () => ({
   SAML_IDP_ISSUER: IDP_ISSUER,
   SAML_IDP_CERT: pems.cert,
   SAML_ADMIN_EMAILS: "dana@example.com",
-  SAML_ADMIN_GROUPS: "Piecewise Admins",
+  SAML_ADMIN_GROUPS: "Planifold Admins",
 });
 
 beforeAll(async () => {
@@ -149,7 +149,7 @@ describe("SAML sign-in", () => {
     expect(res.statusCode, res.body).toBe(302);
     expect(res.headers.location).toBe("/plans/abc");
     const session = cookieOf(res);
-    expect(session).toContain("piecewise_session=");
+    expect(session).toContain("planifold_session=");
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: session } });
     expect(me.json().user).toMatchObject({ email: "dana@example.com", name: "Dana Reyes", role: "app_admin", authSource: "saml", scimManaged: false });
   });
@@ -188,7 +188,7 @@ describe("SAML sign-in", () => {
 
   it("refuses an unsolicited (IdP-initiated) response by default", async () => {
     const res = await post(t, buildResponse({ nameId: "00u1dana", attributes: { email: "dana@example.com" } }));
-    expect(errorOf(res)).toContain("must start from Piecewise");
+    expect(errorOf(res)).toContain("must start from Planifold");
   });
 
   it("uses the NameID as the email when no attribute is sent, and the email's local part as the name", async () => {
@@ -201,7 +201,7 @@ describe("SAML sign-in", () => {
 
   it("makes members of an admin group administrators", async () => {
     const { requestId, relayState } = await startFlow(t);
-    const res = await post(t, buildResponse({ nameId: "00u1kim", inResponseTo: requestId, attributes: { email: "kim@example.com", name: "Kim Ito", groups: ["Everyone", "Piecewise Admins"] } }), relayState);
+    const res = await post(t, buildResponse({ nameId: "00u1kim", inResponseTo: requestId, attributes: { email: "kim@example.com", name: "Kim Ito", groups: ["Everyone", "Planifold Admins"] } }), relayState);
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: cookieOf(res) } });
     expect(me.json().user).toMatchObject({ email: "kim@example.com", name: "Kim Ito", role: "app_admin" });
   });
@@ -212,7 +212,11 @@ describe("SAML sign-in", () => {
     const res = await post(t, buildResponse({ nameId: "00u1sam", inResponseTo: requestId, attributes: { email: "sam@example.com" } }), relayState);
     expect(res.headers.location).toBe("/");
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: cookieOf(res) } });
-    expect(me.json().user).toMatchObject({ id: sam.id, email: "sam@example.com", authSource: "saml", role: "user" });
+    // The temporary password that came with the invitation is retired, not
+    // left demanding a change the identity provider makes impossible.
+    expect(me.json().user).toMatchObject({ id: sam.id, email: "sam@example.com", authSource: "saml", role: "user", mustChangePassword: false });
+    const plans = await t.app.inject({ method: "GET", url: "/api/plans", headers: { cookie: cookieOf(res) } });
+    expect(plans.statusCode).toBe(200);
 
     const other = await startFlow(t);
     const spoof = await post(t, buildResponse({ nameId: "00u1mallory", inResponseTo: other.requestId, attributes: { email: "sam@example.com" } }), other.relayState);
@@ -231,7 +235,7 @@ describe("SAML sign-in", () => {
     expect(created.statusCode).toBe(201);
     // Okta configured to send its user id as the NameID, and a changed email.
     const { requestId, relayState } = await startFlow(t);
-    const res = await post(t, buildResponse({ nameId: "00u1lee", inResponseTo: requestId, attributes: { email: "lee.park@example.com", groups: ["Piecewise Admins"] } }), relayState);
+    const res = await post(t, buildResponse({ nameId: "00u1lee", inResponseTo: requestId, attributes: { email: "lee.park@example.com", groups: ["Planifold Admins"] } }), relayState);
     expect(res.headers.location).toBe("/");
     const me = await t.app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie: cookieOf(res) } });
     expect(me.json().user).toMatchObject({ id: created.json().id, email: "lee@example.com", name: "Lee Park", role: "app_admin", authSource: "saml", scimManaged: true });
@@ -255,7 +259,7 @@ describe("IdP-initiated SAML sign-in when allowed", () => {
     const ok = await post(t, buildResponse({ nameId: "00u1dana", attributes: { email: "dana@example.com" } }), "/plans/from-okta");
     expect(ok.statusCode, ok.body).toBe(302);
     expect(ok.headers.location).toBe("/plans/from-okta");
-    expect(cookieOf(ok)).toContain("piecewise_session=");
+    expect(cookieOf(ok)).toContain("planifold_session=");
     const off = await post(t, buildResponse({ nameId: "00u1dana", attributes: { email: "dana@example.com" } }), "https://evil.example/");
     expect(off.headers.location).toBe("/");
     // A solicited flow still works and still refuses replays.

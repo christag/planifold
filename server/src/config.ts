@@ -62,9 +62,6 @@ export interface SamlConfig {
   allowIdpInitiated: boolean;
   clockSkewMs: number;
   buttonLabel: string;
-  defaultRole: RoleName;
-  adminEmails: string[];
-  adminGroups: string[];
   attributes: { email: string; name: string; firstName: string; lastName: string; groups: string };
   /** When true, SAML is the only way in: password, OIDC, and trusted-header sign-in are off. */
   enforce: boolean;
@@ -107,6 +104,13 @@ export interface Config {
           defaultRole: "user" | "integration_admin" | "app_admin";
         };
     saml: SamlConfig | undefined;
+    /**
+     * How an account gets its role when an identity provider creates it,
+     * whether that happens at SAML sign-in or ahead of time over SCIM. Read
+     * unconditionally, so a deployment that provisions over SCIM but signs in
+     * some other way still gets the roles it configured.
+     */
+    provisioning: { defaultRole: RoleName; adminEmails: string[]; adminGroups: string[] };
   };
   bootstrapAdmin: { email: string; password: string; name: string } | undefined;
 }
@@ -120,7 +124,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
 
   const oidcIssuer = str("OIDC_ISSUER");
   const trustedHeader = str("AUTH_TRUSTED_HEADER");
-  const saml = loadSaml(baseUrl, role);
+  const saml = loadSaml(baseUrl);
 
   const config: Config = {
     env,
@@ -128,7 +132,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     port: int("PORT", 3000),
     baseUrl,
     dataDir,
-    dbPath: str("DB_PATH", join(dataDir, "piecewise.sqlite")),
+    dbPath: str("DB_PATH", defaultDbPath(dataDir)),
     appSecret: str("APP_SECRET") || loadOrCreateSecret(dataDir),
     builtinPluginsDir:
       str("BUILTIN_PLUGINS_DIR") ||
@@ -164,6 +168,11 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
           }
         : undefined,
       saml,
+      provisioning: {
+        defaultRole: role(str("SAML_DEFAULT_ROLE", "user")),
+        adminEmails: list("SAML_ADMIN_EMAILS").map((s) => s.toLowerCase()),
+        adminGroups: list("SAML_ADMIN_GROUPS"),
+      },
     },
     bootstrapAdmin: str("BOOTSTRAP_ADMIN_EMAIL")
       ? { email: str("BOOTSTRAP_ADMIN_EMAIL").toLowerCase(), password: str("BOOTSTRAP_ADMIN_PASSWORD"), name: str("BOOTSTRAP_ADMIN_NAME", "Administrator") }
@@ -184,7 +193,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
 }
 
 /** Reads SAML_* and returns undefined when none of the three required values is set. */
-function loadSaml(baseUrl: string | undefined, role: (v: string) => RoleName): SamlConfig | undefined {
+function loadSaml(baseUrl: string | undefined): SamlConfig | undefined {
   const entryPoint = str("SAML_IDP_SSO_URL");
   const idpIssuer = str("SAML_IDP_ISSUER");
   const idpCert = strOrFile("SAML_IDP_CERT");
@@ -216,9 +225,6 @@ function loadSaml(baseUrl: string | undefined, role: (v: string) => RoleName): S
     allowIdpInitiated: bool("SAML_ALLOW_IDP_INITIATED", false),
     clockSkewMs: Math.max(0, int("SAML_CLOCK_SKEW_SECONDS", 120)) * 1000,
     buttonLabel: str("SAML_BUTTON_LABEL", "Sign in with SAML single sign-on"),
-    defaultRole: role(str("SAML_DEFAULT_ROLE", "user")),
-    adminEmails: list("SAML_ADMIN_EMAILS").map((s) => s.toLowerCase()),
-    adminGroups: list("SAML_ADMIN_GROUPS"),
     attributes: {
       email: str("SAML_ATTR_EMAIL", "email"),
       name: str("SAML_ATTR_NAME", "name"),
@@ -234,6 +240,17 @@ function loadSaml(baseUrl: string | undefined, role: (v: string) => RoleName): S
 function splitCerts(raw: string): string[] {
   const blocks = raw.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g);
   return blocks && blocks.length ? blocks : [raw];
+}
+
+/**
+ * The database file. New installs get `planifold.sqlite`. An install from
+ * before the rename keeps using its existing `piecewise.sqlite` rather than
+ * silently starting empty beside it; set DB_PATH to override either way.
+ */
+function defaultDbPath(dataDir: string): string {
+  const current = join(dataDir, "planifold.sqlite");
+  const legacy = join(dataDir, "piecewise.sqlite");
+  return !existsSync(current) && existsSync(legacy) ? legacy : current;
 }
 
 /** Accepts only absolute http(s) URLs; anything else is treated as unset. */

@@ -1,4 +1,4 @@
-import { analyzePlan, buildSentence, cleanPiece, withSlot, type PieceData, type PieceKind, type PlanAnalysis, type SlotValue } from "@piecewise/shared";
+import { analyzePlan, buildSentence, cleanPiece, withSlot, type PieceData, type PieceKind, type PlanAnalysis, type SlotValue } from "@planifold/shared";
 import { create } from "zustand";
 import { api } from "./api.js";
 import { errorMessage, useApp } from "./store.js";

@@ -5,7 +5,7 @@ import type { Db } from "../db/index.js";
 import { now } from "../db/index.js";
 import type { User } from "../db/models.js";
 
-export const SESSION_COOKIE = "piecewise_session";
+export const SESSION_COOKIE = "planifold_session";
 
 /** How a session was established. Recorded so enforcement can tell them apart. */
 export type SessionVia = "local" | "oidc" | "saml";

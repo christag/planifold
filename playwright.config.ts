@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * End-to-end tests drive the built app in a real Chrome.
- * Point PW_BASE_URL at a running Piecewise (default http://localhost:3210).
+ * Point PW_BASE_URL at a running Planifold (default http://localhost:3210).
  * The first run completes setup; later runs sign in with the same account.
  */
 export default defineConfig({

@@ -19,7 +19,7 @@ export interface ScimTokenRow {
   last_used_at: string | null;
 }
 
-const PREFIX = "pcw_scim_";
+const PREFIX = "pfd_scim_";
 
 function hashToken(secret: string): string {
   return createHash("sha256").update(secret, "utf8").digest("hex");

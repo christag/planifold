@@ -12,7 +12,7 @@ interface Props {
   onSave(patch: { enabled?: boolean; ownerId?: string | null; guidance?: string | null; setupNotes?: string | null; overrides?: PluginInfo["overrides"] }): Promise<void>;
 }
 
-/** Everything an owner can say about one integration: guidance for the helper, how to get access, what to hide. */
+/** Everything an owner can say about one integration: guidance for Plani, how to get access, what to hide. */
 export function PluginEditor({ plugin, admin, users = [], onSave }: Props) {
   const toast = useApp((s) => s.toast);
   const [open, setOpen] = useState(false);
@@ -120,9 +120,9 @@ export function PluginEditor({ plugin, admin, users = [], onSave }: Props) {
             </div>
           )}
           <div className="field">
-            <label htmlFor={`guidance-${plugin.id}`}>Guidance for the helper</label>
+            <label htmlFor={`guidance-${plugin.id}`}>Guidance for Plani</label>
             <textarea id={`guidance-${plugin.id}`} className="textarea" rows={4} value={guidance} onChange={(e) => setGuidance(e.target.value)} placeholder={plugin.defaultGuidance ?? "How is this system normally used here? What should people avoid?"} />
-            <span className="hint">Read by the AI helper and printed on every handoff that uses {plugin.name}. Leave blank to keep the plugin's default, shown as the placeholder.</span>
+            <span className="hint">Read by Plani and printed on every handoff that uses {plugin.name}. Leave blank to keep the plugin's default, shown as the placeholder.</span>
           </div>
           <div className="field">
             <label htmlFor={`setup-${plugin.id}`}>How to get access</label>

@@ -1,4 +1,4 @@
-import type { Catalog } from "@piecewise/shared";
+import type { Catalog } from "@planifold/shared";
 import type { AuditEntry, AuthAdminInfo, AuthConfig, HandoffResponse, HelperMessage, HelperResult, HelperStatus, OrgSettings, Overview, Piece, Plan, PluginInfo, PluginProblem, Provider, ScimToken, SuggestedSlot, User } from "./types.js";
 
 export class ApiError extends Error {

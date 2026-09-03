@@ -12,7 +12,7 @@ function SuggestionCard({ s, messageId, index }: { s: Suggestion; messageId: str
   const key = `${messageId}:${index}`;
   useEffect(() => {
     try {
-      setApplied(sessionStorage.getItem(`piecewise.applied.${key}`) === "1");
+      setApplied(sessionStorage.getItem(`planifold.applied.${key}`) === "1");
     } catch {
       /* ignore */
     }
@@ -23,7 +23,7 @@ function SuggestionCard({ s, messageId, index }: { s: Suggestion; messageId: str
     setBusy(false);
     setApplied(true);
     try {
-      sessionStorage.setItem(`piecewise.applied.${key}`, "1");
+      sessionStorage.setItem(`planifold.applied.${key}`, "1");
     } catch {
       /* ignore */
     }
@@ -148,7 +148,7 @@ export function HelperPanel({ onClose }: { onClose?: () => void }) {
       <div className="helper-head">
         <div className="row">
           <Sparkles />
-          <span style={{ fontWeight: 600 }}>Helper</span>
+          <span style={{ fontWeight: 600 }}>Plani</span>
           {status && (
             <span className={`pill ${status.configured ? "pen" : ""}`} title={status.configured ? `${status.provider?.label}: ${status.provider?.model}` : "No AI model is configured. Guidance comes from the plan's own rules."}>
               {status.configured ? status.provider?.model : "rules only"}
@@ -170,7 +170,7 @@ export function HelperPanel({ onClose }: { onClose?: () => void }) {
       </div>
       {status && !status.configured && user?.role === "app_admin" && (
         <div className="helper-setup tiny">
-          <Info /> No AI model yet. <Link to="/admin/ai">Add one in Admin → AI</Link> to get suggestions written for this plan.
+          <Info /> Plani has no AI model yet. <Link to="/admin/ai">Add one in Admin → AI</Link> to get suggestions written for this plan.
         </div>
       )}
       <div className="helper-scroll" ref={scroller}>
@@ -191,7 +191,7 @@ export function HelperPanel({ onClose }: { onClose?: () => void }) {
         )}
         {messages.length === 0 && !busy && (
           <div className="helper-empty">
-            <p className="small muted">Ask anything about this plan. Or open a blank and choose “Help me with this”.</p>
+            <p className="small muted">Ask Plani anything about this plan. Or open a blank and choose “Help me with this”.</p>
             <div className="row wrap">
               <button className="btn sm" onClick={() => void ask({ intent: "breakdown" })}>
                 Break the thought into pieces
@@ -225,7 +225,7 @@ export function HelperPanel({ onClose }: { onClose?: () => void }) {
           </div>
         )}
         <div className="row" style={{ alignItems: "flex-end" }}>
-          <textarea className="textarea" rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} placeholder="Ask the helper…" aria-label="Message the helper" disabled={busy} />
+          <textarea className="textarea" rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} placeholder="Ask Plani…" aria-label="Message Plani" disabled={busy} />
           <button className="btn primary icon" onClick={send} disabled={busy || !text.trim()} aria-label="Send">
             <ArrowRight />
           </button>

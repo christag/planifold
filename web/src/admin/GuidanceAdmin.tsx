@@ -35,7 +35,7 @@ export function GuidanceAdmin() {
     <form className="stack lg" onSubmit={save} style={{ maxWidth: 720 }}>
       <div>
         <h1>Guidance</h1>
-        <p className="muted small">What the helper is told about your organization, and what every handoff carries.</p>
+        <p className="muted small">What Plani is told about your organization, and what every handoff carries.</p>
       </div>
       <div className="card pad stack lg">
         <div className="field">
@@ -45,7 +45,7 @@ export function GuidanceAdmin() {
         <div className="field">
           <label htmlFor="builder">Preferred way to build automations</label>
           <input id="builder" className="input" value={form.preferredBuilder} onChange={(e) => setForm({ ...form, preferredBuilder: e.target.value })} placeholder="e.g. Claude Routines for most tasks; n8n only for high-volume pipelines" />
-          <span className="hint">The helper steers people here when they ask how something will be built, and the build brief recommends it.</span>
+          <span className="hint">Plani steers people here when they ask how something will be built, and the build brief recommends it.</span>
         </div>
         <div className="field">
           <label htmlFor="guidance">Organization guidance</label>
@@ -55,9 +55,9 @@ export function GuidanceAdmin() {
             rows={8}
             value={form.orgGuidance}
             onChange={(e) => setForm({ ...form, orgGuidance: e.target.value })}
-            placeholder={"Plain sentences the helper should follow. For example:\n\n- Never send email to customers without a person reviewing a draft first.\n- Anything touching HR data needs sign-off from People Ops.\n- Prefer reading from the data warehouse over hitting production APIs."}
+            placeholder={"Plain sentences Plani should follow. For example:\n\n- Never send email to customers without a person reviewing a draft first.\n- Anything touching HR data needs sign-off from People Ops.\n- Prefer reading from the data warehouse over hitting production APIs."}
           />
-          <span className="hint">Goes into the helper's instructions on every request and is printed under “How this should be built” on every handoff.</span>
+          <span className="hint">Goes into Plani's instructions on every request and is printed under “How this should be built” on every handoff.</span>
         </div>
         <div>
           <button className="btn primary" disabled={busy}>

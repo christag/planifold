@@ -1,4 +1,4 @@
-import type { PieceKind, SlotValue } from "@piecewise/shared";
+import type { PieceKind, SlotValue } from "@planifold/shared";
 import { randomUUID } from "node:crypto";
 import type { Db } from "./index.js";
 import { now, parseJson } from "./index.js";

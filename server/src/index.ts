@@ -14,7 +14,7 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 
 try {
   await app.listen({ host: config.host, port: config.port });
-  app.log.info(`Piecewise is listening on http://${config.host}:${config.port}`);
+  app.log.info(`Planifold is listening on http://${config.host}:${config.port}`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

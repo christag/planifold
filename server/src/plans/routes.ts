@@ -1,4 +1,4 @@
-import { buildHandoff, cleanPiece, renderHandoffMarkdown, type PieceData, type SlotValue } from "@piecewise/shared";
+import { buildHandoff, cleanPiece, renderHandoffMarkdown, type PieceData, type SlotValue } from "@planifold/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { AppContext } from "../app.js";

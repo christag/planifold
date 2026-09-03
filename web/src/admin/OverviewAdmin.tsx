@@ -16,7 +16,7 @@ export function OverviewAdmin() {
   }, [toast]);
   if (!data) return <Spinner label="Loading" />;
   const todo: Array<{ text: string; to: string }> = [];
-  if (!data.helper.configured) todo.push({ text: "Add an AI model so the helper can write suggestions.", to: "/admin/ai" });
+  if (!data.helper.configured) todo.push({ text: "Add an AI model so Plani can write suggestions.", to: "/admin/ai" });
   if (!data.settings.preferredBuilder) todo.push({ text: "Say which platform automations should be built on.", to: "/admin/guidance" });
   if (data.users < 2) todo.push({ text: "Invite the first people.", to: "/admin/users" });
   return (
@@ -29,13 +29,13 @@ export function OverviewAdmin() {
         <Stat label="Transformations" value={data.operationsEnabled} />
       </div>
       <div className="card pad stack">
-        <h2>AI helper</h2>
+        <h2>Plani</h2>
         {data.helper.configured ? (
           <p className="small">
             Using <strong>{data.helper.provider?.label}</strong> ({data.helper.provider?.model}). <Link to="/admin/ai">Change</Link>
           </p>
         ) : (
-          <p className="small muted">No model configured. The helper still works from the plan's own rules, but it can't write suggestions tailored to a thought.</p>
+          <p className="small muted">No model configured. Plani still works from the plan's own rules, but it can't write suggestions tailored to a thought.</p>
         )}
       </div>
       {todo.length > 0 && (

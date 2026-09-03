@@ -1,5 +1,5 @@
 {
-  "name": "@piecewise/web",
+  "name": "@planifold/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
-    "@piecewise/shared": "0.1.0",
+    "@planifold/shared": "0.1.0",
     "@xyflow/react": "^12.11.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

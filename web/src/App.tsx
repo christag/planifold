@@ -29,7 +29,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
     if (authConfig?.needsSetup) return <Navigate to="/setup" replace />;
     return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   }
-  if (user.mustChangePassword) return <ChangePasswordGate />;
+  // Only a password account can answer this gate; /api/auth/password refuses
+  // anyone whose identity provider owns the account, so gating them would
+  // leave them with a demand they cannot satisfy.
+  if (user.mustChangePassword && user.authSource === "local") return <ChangePasswordGate />;
   return <>{children}</>;
 }
 

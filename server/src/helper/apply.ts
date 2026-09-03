@@ -1,4 +1,4 @@
-import { buildSentence, cleanPiece, type Catalog, type PieceData, type SlotValue, type Token } from "@piecewise/shared";
+import { buildSentence, cleanPiece, type Catalog, type PieceData, type SlotValue, type Token } from "@planifold/shared";
 import type { SuggestedSlot } from "./schema.js";
 export { SuggestedSlotSchema } from "./schema.js";
 

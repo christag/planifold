@@ -6,7 +6,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { buildCatalog, buildSentence, safeParseManifest, type PieceData, type PluginManifest } from "@piecewise/shared";
+import { buildCatalog, buildSentence, safeParseManifest, type PieceData, type PluginManifest } from "@planifold/shared";
 
 const dirs = process.argv.slice(2).length ? process.argv.slice(2) : [resolve(process.cwd(), "plugins")];
 let failed = 0;

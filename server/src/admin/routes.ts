@@ -143,7 +143,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { ctx: AppContext 
   });
 
   // Sign-in methods and SCIM provisioning
-  const describeAuth = () => ({
+  const describeAuth = (req: { protocol: string; headers: { host?: string } }) => ({
     methods: {
       local: config.auth.local,
       oidc: config.auth.oidc ? { label: config.auth.oidc.buttonLabel, issuer: config.auth.oidc.issuer } : null,
@@ -163,7 +163,9 @@ export async function adminRoutes(app: FastifyInstance, opts: { ctx: AppContext 
       trustedHeader: !!config.auth.trustedHeader,
     },
     scim: {
-      baseUrl: `${config.baseUrl ?? ""}${SCIM_BASE}`,
+      // Absolute, because an administrator pastes this into the identity
+      // provider. Without BASE_URL, fall back to how this request arrived.
+      baseUrl: `${config.baseUrl ?? `${req.protocol}://${req.headers.host ?? "localhost"}`}${SCIM_BASE}`,
       tokens: listScimTokens(db).map(publicScimToken),
       groups: (
         db.prepare("SELECT g.id, g.display_name, g.external_id, g.updated_at, COUNT(m.user_id) AS members FROM scim_groups g LEFT JOIN scim_group_members m ON m.group_id = g.id GROUP BY g.id ORDER BY g.display_name").all() as Array<{ id: string; display_name: string; external_id: string | null; updated_at: string; members: number }>
@@ -171,7 +173,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { ctx: AppContext 
     },
   });
 
-  app.get("/api/admin/auth", async () => describeAuth());
+  app.get("/api/admin/auth", async (req) => describeAuth(req));
 
   app.post("/api/admin/scim/tokens", async (req) => {
     const actor = requireRole(req, "app_admin");

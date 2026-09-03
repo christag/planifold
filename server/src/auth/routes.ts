@@ -16,7 +16,7 @@ const Setup = z.object({ email: z.string().email(), name: z.string().min(1).max(
 const PasswordChange = z.object({ currentPassword: z.string().optional(), newPassword: z.string().min(10).max(200) });
 const SamlResponse = z.object({ SAMLResponse: z.string().min(1), RelayState: z.string().max(200).optional() });
 
-const OIDC_FLOW_COOKIE = "piecewise_oidc";
+const OIDC_FLOW_COOKIE = "planifold_oidc";
 
 export async function authRoutes(app: FastifyInstance, opts: { db: Db; config: Config; oidc: Oidc; saml: Saml; settings: { get<T>(k: string, f: T): T; set(k: string, v: unknown): void } }) {
   const { db, config, oidc, saml, settings } = opts;
@@ -117,7 +117,7 @@ export async function authRoutes(app: FastifyInstance, opts: { db: Db; config: C
             audit(db, null, "login.failed", identity.email, { via: "oidc", reason: "subject mismatch" });
             return reply.redirect(loginError("This account is linked to a different single sign-on identity."), 302);
           }
-          user = updateUser(db, byEmail.id, { oidcSub: identity.sub, authSource: "oidc" });
+          user = updateUser(db, byEmail.id, { oidcSub: identity.sub, authSource: "oidc", ...(byEmail.must_change_password ? { mustChangePassword: false } : {}) });
           audit(db, { id: user.id, email: user.email }, "user.linked", user.id, { via: "oidc" });
         } else {
           const role = o.adminEmails.includes(identity.email) ? "app_admin" : o.defaultRole;
@@ -186,8 +186,8 @@ export async function authRoutes(app: FastifyInstance, opts: { db: Db; config: C
  * email, which is linked once. Otherwise an account is created.
  */
 function resolveSamlUser(db: Db, config: Config, identity: SamlIdentity): User | { error: string; reason: string } {
-  const s = config.auth.saml!;
-  const isAdmin = s.adminEmails.includes(identity.email) || identity.groups.some((g) => s.adminGroups.includes(g));
+  const p = config.auth.provisioning;
+  const isAdmin = p.adminEmails.includes(identity.email) || identity.groups.some((g) => p.adminGroups.includes(g));
   let user = findUserBySamlNameId(db, identity.nameId);
   if (user) return user;
   const existing = findUserByScimExternalId(db, identity.nameId) ?? findUserByEmail(db, identity.email);
@@ -202,11 +202,15 @@ function resolveSamlUser(db: Db, config: Config, identity: SamlIdentity): User |
       samlNameId: identity.nameId,
       ...(existing.auth_source === "local" || existing.auth_source === "scim" ? { authSource: "saml" } : {}),
       ...(promote ? { role: "app_admin" } : {}),
+      // A temporary password is meaningless once the identity provider owns
+      // this account, and leaving the flag set would strand the person: the
+      // app would demand a password change that /api/auth/password refuses.
+      ...(existing.must_change_password ? { mustChangePassword: false } : {}),
     });
     audit(db, { id: user.id, email: user.email }, "user.linked", user.id, { via: "saml", ...(promote ? { role: "app_admin" } : {}) });
     return user;
   }
-  const role = isAdmin ? "app_admin" : s.defaultRole;
+  const role = isAdmin ? "app_admin" : p.defaultRole;
   user = createUser(db, { email: identity.email, name: identity.name, role, authSource: "saml", samlNameId: identity.nameId, givenName: identity.givenName, familyName: identity.familyName });
   audit(db, { id: user.id, email: user.email }, "user.created", user.id, { via: "saml", role });
   return user;
@@ -215,7 +219,7 @@ function resolveSamlUser(db: Db, config: Config, identity: SamlIdentity): User |
 /** node-saml's messages are precise but terse; say what the person can do about the common ones. */
 function samlErrorMessage(e: unknown): string {
   const m = (e as Error)?.message ?? "";
-  if (/InResponseTo is missing/i.test(m)) return "Sign-in must start from Piecewise. Open the sign-in page and try again.";
+  if (/InResponseTo is missing/i.test(m)) return "Sign-in must start from Planifold. Open the sign-in page and try again.";
   if (/InResponseTo is not valid|SubjectInResponseTo/i.test(m)) return "This sign-in attempt expired or was already used. Start again.";
   if (/Invalid (document )?signature|Invalid signature/i.test(m)) return "The identity provider's response could not be verified. Ask your administrator to check the SAML certificate.";
   if (/audience mismatch/i.test(m)) return "The identity provider sent this response to a different application. Ask your administrator to check the audience (entity id).";

@@ -32,7 +32,7 @@ describe("SCIM provisioning", () => {
     expect(res.statusCode).toBe(200);
     secret = res.json().secret;
     tokenId = res.json().token.id;
-    expect(secret).toMatch(/^pcw_scim_/);
+    expect(secret).toMatch(/^pfd_scim_/);
     expect(res.json().token).toMatchObject({ label: "Okta", prefix: secret.slice(0, 13) + "…" });
   });
   afterAll(() => t.close());
@@ -235,6 +235,32 @@ describe("SCIM provisioning", () => {
     expect(entries.find((e) => e.action === "user.deleted" && e.actorEmail === "scim:Okta")?.details).toMatchObject({ via: "scim" });
     expect(entries.some((e) => e.action === "group.created" && e.actorEmail === "scim:Okta")).toBe(true);
     expect(entries.some((e) => e.action === "scim.token.created")).toBe(true);
+  });
+
+  it("applies the configured provisioning roles even when SAML is not set up", async () => {
+    // An OIDC-plus-SCIM deployment sets no SAML_IDP_* variables. The role
+    // rules still have to work, because they are what the documentation says
+    // decides the role of an account the identity provider creates.
+    const solo = await createTestApp({ BASE_URL: "", SAML_DEFAULT_ROLE: "integration_admin", SAML_ADMIN_EMAILS: "chief@example.com" });
+    try {
+      const cookie = await setupAdmin(solo, "root@example.com", "correct-horse-battery");
+      const made = await solo.app.inject({ method: "POST", url: "/api/admin/scim/tokens", headers: { cookie }, payload: { label: "Okta" } });
+      const key = made.json().secret as string;
+      const create = (userName: string) =>
+        solo.app.inject({ method: "POST", url: "/api/scim/v2/Users", headers: { authorization: `Bearer ${key}`, "content-type": "application/scim+json" }, payload: JSON.stringify({ schemas: [USER], userName }) });
+      expect((await create("chief@example.com")).statusCode).toBe(201);
+      expect((await create("everyone@example.com")).statusCode).toBe(201);
+      const users = (await solo.app.inject({ method: "GET", url: "/api/admin/users", headers: { cookie } })).json().users as Array<{ email: string; role: string }>;
+      expect(users.find((u) => u.email === "chief@example.com")?.role).toBe("app_admin");
+      expect(users.find((u) => u.email === "everyone@example.com")?.role).toBe("integration_admin");
+      // The SCIM base URL an administrator copies into Okta has to be absolute
+      // even when BASE_URL is unset, or it is useless where it gets pasted.
+      const info = await solo.app.inject({ method: "GET", url: "/api/admin/auth", headers: { cookie } });
+      expect(info.json().scim.baseUrl).toMatch(/^https?:\/\/[^/]+\/api\/scim\/v2$/);
+      expect(info.json().methods.saml).toBeNull();
+    } finally {
+      await solo.close();
+    }
   });
 
   it("stops accepting a revoked token", async () => {

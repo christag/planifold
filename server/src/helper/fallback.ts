@@ -1,10 +1,10 @@
 /**
- * The helper that is always there. When no language model is configured
+ * Plani's rule-based mode. When no language model is configured
  * (or one fails), this produces useful, honest guidance from the grammar
  * itself: what the catalog offers, what the plan still needs, and
  * keyword-based guesses the person can accept or ignore.
  */
-import { analyzePlan, buildSentence, type Catalog, type PieceData, type PlanData, type Token } from "@piecewise/shared";
+import { analyzePlan, buildSentence, type Catalog, type PieceData, type PlanData, type Token } from "@planifold/shared";
 import type { HelperFocus, HelperIntent, HelperResponse, Suggestion } from "./schema.js";
 
 const ALIASES: Record<string, string[]> = {

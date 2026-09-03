@@ -1,4 +1,4 @@
-import type { HandoffDocument, PieceKind, SlotValue } from "@piecewise/shared";
+import type { HandoffDocument, PieceKind, SlotValue } from "@planifold/shared";
 
 export type Role = "user" | "integration_admin" | "app_admin";
 

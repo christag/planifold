@@ -39,6 +39,7 @@ export function AuthAdmin() {
   }
 
   async function revoke(id: string) {
+    if (busy) return; // the confirm button stays clickable while the request is in flight
     setBusy(id);
     try {
       await api.admin.scim.revokeToken(id);

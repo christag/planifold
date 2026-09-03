@@ -1,35 +1,35 @@
-# Deploying Piecewise
+# Deploying Planifold
 
-Piecewise is one Node.js process with one SQLite file. There is no database server, no queue, and no cache to run. This document covers running it in a container, as a Podman Quadlet unit, or from source behind a reverse proxy, plus every environment variable, sign-on options, backups, and upgrades.
+Planifold is one Node.js process with one SQLite file. There is no database server, no queue, and no cache to run. This document covers running it in a container, as a Podman Quadlet unit, or from source behind a reverse proxy, plus every environment variable, sign-on options, backups, and upgrades.
 
 ## Requirements
 
 - Container: nothing beyond Podman or Docker. The image is based on `node:22-bookworm-slim` and runs as the unprivileged `node` user.
 - From source: Node.js 22 or newer (`engines.node >= 22` in `package.json`) and npm. `better-sqlite3` is a native module; `npm ci` builds or downloads it.
-- Outbound HTTPS from the server to your model provider (Anthropic, OpenAI, or an OpenAI-compatible server) if you configure one, and to your OpenID Connect issuer if you use OIDC single sign-on. SAML single sign-on needs no outbound connection (the browser carries the messages). SCIM provisioning is inbound: the identity provider must be able to reach `BASE_URL`. With no provider configured the helper runs in a limited rule-based mode.
-- A reverse proxy for TLS. Piecewise serves plain HTTP only.
+- Outbound HTTPS from the server to your model provider (Anthropic, OpenAI, or an OpenAI-compatible server) if you configure one, and to your OpenID Connect issuer if you use OIDC single sign-on. SAML single sign-on needs no outbound connection (the browser carries the messages). SCIM provisioning is inbound: the identity provider must be able to reach `BASE_URL`. With no provider configured Plani runs in a limited rule-based mode.
+- A reverse proxy for TLS. Planifold serves plain HTTP only.
 - One host. Storage is a SQLite file in WAL mode on local disk. Do not run more than one instance against the same file, and do not put the file on a network share.
-- Piecewise must be served at the root of a hostname. Routes are fixed at `/` and `/api/`; there is no path-prefix setting.
+- Planifold must be served at the root of a hostname. Routes are fixed at `/` and `/api/`; there is no path-prefix setting.
 
 ## Running with Podman or Docker
 
-Published image: `ghcr.io/christag/piecewise` (built by `.github/workflows/ci.yml` for `linux/amd64` and `linux/arm64`; `latest` tracks `main`, and `v*` tags produce version tags). To build locally:
+Published image: `ghcr.io/christag/planifold` (built by `.github/workflows/ci.yml` for `linux/amd64` and `linux/arm64`; `latest` tracks `main`, and `v*` tags produce version tags). To build locally:
 
 ```sh
-podman build -t piecewise .
+podman build -t planifold .
 ```
 
 Run it:
 
 ```sh
-podman run -d --name piecewise \
+podman run -d --name planifold \
   -p 3000:3000 \
-  -v piecewise-data:/data \
+  -v planifold-data:/data \
   -e APP_SECRET="$(openssl rand -base64 32)" \
-  -e BASE_URL=https://piecewise.example.com \
+  -e BASE_URL=https://planifold.example.com \
   -e BOOTSTRAP_ADMIN_EMAIL=you@example.com \
   -e BOOTSTRAP_ADMIN_PASSWORD='at-least-ten-characters' \
-  ghcr.io/christag/piecewise:latest
+  ghcr.io/christag/planifold:latest
 ```
 
 `docker run` takes the same arguments.
@@ -49,9 +49,9 @@ What you provide:
 
 ```yaml
 services:
-  piecewise:
+  planifold:
     build: .
-    image: ghcr.io/christag/piecewise:latest
+    image: ghcr.io/christag/planifold:latest
     ports:
       - "3000:3000"
     environment:
@@ -69,12 +69,12 @@ services:
       SAML_ENFORCE: ${SAML_ENFORCE:-false}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     volumes:
-      - piecewise-data:/data
+      - planifold-data:/data
       - ./plugins-extra:/plugins:ro
     restart: unless-stopped
 
 volumes:
-  piecewise-data:
+  planifold-data:
 ```
 
 Copy `.env.example` to `.env`, set at least `APP_SECRET`, then:
@@ -87,20 +87,20 @@ The file names both `build: .` and the published image. `up` uses a local image 
 
 ## Podman Quadlet
 
-`deploy/piecewise.container` is a Quadlet unit:
+`deploy/planifold.container` is a Quadlet unit:
 
 ```ini
 [Unit]
-Description=Piecewise — turn a big thought into pieces an AI can build
+Description=Planifold — turn a big thought into pieces an AI can build
 After=network-online.target
 Wants=network-online.target
 
 [Container]
-Image=ghcr.io/christag/piecewise:latest
-ContainerName=piecewise
+Image=ghcr.io/christag/planifold:latest
+ContainerName=planifold
 PublishPort=3000:3000
-Volume=piecewise-data:/data
-EnvironmentFile=%h/.config/piecewise/piecewise.env
+Volume=planifold-data:/data
+EnvironmentFile=%h/.config/planifold/planifold.env
 AutoUpdate=registry
 
 [Service]
@@ -114,19 +114,19 @@ WantedBy=default.target
 Install it as a user unit:
 
 ```sh
-mkdir -p ~/.config/containers/systemd ~/.config/piecewise
-cp deploy/piecewise.container ~/.config/containers/systemd/
-cp deploy/piecewise.env.example ~/.config/piecewise/piecewise.env
-chmod 600 ~/.config/piecewise/piecewise.env
-# edit piecewise.env: APP_SECRET, BASE_URL, BOOTSTRAP_ADMIN_*
+mkdir -p ~/.config/containers/systemd ~/.config/planifold
+cp deploy/planifold.container ~/.config/containers/systemd/
+cp deploy/planifold.env.example ~/.config/planifold/planifold.env
+chmod 600 ~/.config/planifold/planifold.env
+# edit planifold.env: APP_SECRET, BASE_URL, BOOTSTRAP_ADMIN_*
 systemctl --user daemon-reload
-systemctl --user start piecewise
+systemctl --user start planifold
 loginctl enable-linger "$USER"   # keep user services running after logout
 ```
 
 For a system-wide unit, put the file in `/etc/containers/systemd/` instead, drop `--user`, and change `EnvironmentFile` to an absolute path (`%h` expands to the unit's home directory).
 
-`AutoUpdate=registry` lets `podman auto-update` pull a newer image and restart the unit. To add extra plugins, add a line such as `Volume=%h/piecewise-plugins:/plugins:ro` under `[Container]`; the image already sets `PLUGINS_DIR=/plugins`.
+`AutoUpdate=registry` lets `podman auto-update` pull a newer image and restart the unit. To add extra plugins, add a line such as `Volume=%h/planifold-plugins:/plugins:ro` under `[Container]`; the image already sets `PLUGINS_DIR=/plugins`.
 
 ## Running from source behind a reverse proxy
 
@@ -136,7 +136,7 @@ Build and start:
 npm ci
 npm run build          # shared, then web (Vite), then server (esbuild bundle)
 APP_SECRET="$(openssl rand -base64 32)" \
-BASE_URL=https://piecewise.example.com \
+BASE_URL=https://planifold.example.com \
 TRUST_PROXY=true \
 NODE_ENV=production \
 npm start              # node server/dist/server.js
@@ -164,7 +164,7 @@ All values come from `server/src/config.ts`. Empty strings count as unset. Boole
 | `PORT` | `3000` | Listen port. |
 | `BASE_URL` | unset | Public address, absolute `http://` or `https://` URL. Anything else is treated as unset. Required for OIDC. Sets the `SECURE_COOKIES` default and the OIDC redirect URI. |
 | `DATA_DIR` | `./data` (relative to the working directory) | Created if missing. Holds the database and `.app-secret`. The image sets `/data`. |
-| `DB_PATH` | `$DATA_DIR/piecewise.sqlite` | SQLite file. `-wal` and `-shm` files appear next to it. |
+| `DB_PATH` | `$DATA_DIR/planifold.sqlite` | SQLite file. `-wal` and `-shm` files appear next to it. |
 | `APP_SECRET` | generated, stored in `$DATA_DIR/.app-secret` | Key material for encrypting provider API keys (AES-256-GCM, key derived with scrypt). |
 | `BUILTIN_PLUGINS_DIR` | auto-detected | The `plugins/` directory shipped with the app. Auto-detection tries `<server dist>/../../plugins`, `<server dist>/../plugins`, then `./plugins`. In the image this is `/app/plugins`. |
 | `PLUGINS_DIR` | unset | Additional plugin directory, reported as source `installed`. The image sets `/plugins`. |
@@ -183,7 +183,7 @@ All values come from `server/src/config.ts`. Empty strings count as unset. Boole
 | `OIDC_ADMIN_EMAILS` | unset | Comma-separated, case-insensitive. These emails become `app_admin` when their account is first created by SSO. |
 | `AUTH_TRUSTED_HEADER` | unset | Name of the request header carrying the signed-in user's email. Setting it turns trusted-header sign-in on. |
 | `AUTH_TRUSTED_NAME_HEADER` | unset | Header carrying the display name. Without it the part of the email before `@` is used. |
-| `AUTH_TRUSTED_PROXY_TOKEN` | unset | If set, headers are honored only when the request carries `X-Piecewise-Proxy-Token` with exactly this value. |
+| `AUTH_TRUSTED_PROXY_TOKEN` | unset | If set, headers are honored only when the request carries `X-Planifold-Proxy-Token` with exactly this value. |
 | `AUTH_TRUSTED_DEFAULT_ROLE` | `user` | Role for accounts created by trusted-header sign-in. |
 | `SAML_IDP_SSO_URL` | unset | The identity provider's single sign-on URL. Setting any of the three `SAML_IDP_*` values turns SAML on; all three are then required. |
 | `SAML_IDP_ISSUER` | unset | The identity provider's entity id (Okta calls it "Identity Provider Issuer"). Responses from any other issuer are refused. |
@@ -192,7 +192,7 @@ All values come from `server/src/config.ts`. Empty strings count as unset. Boole
 | `SAML_SP_PRIVATE_KEY`, `SAML_SP_CERT` | unset | Optional key pair (PEM; `_FILE` variants exist) for signing authentication requests and decrypting encrypted assertions. Both or neither. |
 | `SAML_NAMEID_FORMAT` | unset | NameID format to ask for. Unset lets the identity provider choose. |
 | `SAML_WANT_RESPONSE_SIGNED` | `true` | Require a signature on the whole response as well as on the assertion (Okta signs both by default). |
-| `SAML_ALLOW_IDP_INITIATED` | `false` | Accept responses that did not answer a request from Piecewise, so people can start from the identity provider's dashboard. |
+| `SAML_ALLOW_IDP_INITIATED` | `false` | Accept responses that did not answer a request from Planifold, so people can start from the identity provider's dashboard. |
 | `SAML_CLOCK_SKEW_SECONDS` | `120` | Tolerance when checking assertion validity times. |
 | `SAML_BUTTON_LABEL` | `Sign in with SAML single sign-on` | Text on the sign-in button. |
 | `SAML_DEFAULT_ROLE` | `user` | Role for accounts created by SAML sign-in or SCIM. |
@@ -208,7 +208,7 @@ Startup fails with an error when: `OIDC_ISSUER` is set without `OIDC_CLIENT_ID`;
 
 ## Single sign-on (OpenID Connect)
 
-Piecewise uses `openid-client` with the authorization code flow, PKCE (`S256`), `state`, and `nonce`. Provider settings are read from the issuer's discovery document (`<issuer>/.well-known/openid-configuration`).
+Planifold uses `openid-client` with the authorization code flow, PKCE (`S256`), `state`, and `nonce`. Provider settings are read from the issuer's discovery document (`<issuer>/.well-known/openid-configuration`).
 
 1. Register a web application at your identity provider with this redirect URI:
 
@@ -221,7 +221,7 @@ Piecewise uses `openid-client` with the authorization code flow, PKCE (`S256`), 
 2. Set the variables:
 
    ```sh
-   BASE_URL=https://piecewise.example.com
+   BASE_URL=https://planifold.example.com
    OIDC_ISSUER=https://your-issuer.example.com
    OIDC_CLIENT_ID=...
    OIDC_CLIENT_SECRET=...        # omit for a public client
@@ -235,8 +235,8 @@ How identities map to accounts:
 - The server reads `email` and `name` from the ID token, falling back to the userinfo endpoint. Sign-in fails with "The identity provider did not share an email address" if no email is available, so keep the `email` scope.
 - Identity is the provider's `sub` claim, stored on the account (`users.oidc_sub`). On the first sign-in of a subject, an existing account with the same email (case-insensitive) is linked to it, unless the provider reports `email_verified: false`, in which case sign-in is refused. An account already linked to a different subject refuses the new one. Otherwise a new account is created: `app_admin` if the email is in `OIDC_ADMIN_EMAILS`, else `OIDC_DEFAULT_ROLE`. Roles are set only at creation; later sign-ins do not change them, and there is no group-to-role mapping from claims. Change roles in Admin → Users.
 - A disabled account is refused at the callback.
-- Flow state is kept in the `oidc_flows` table, tied to a `piecewise_oidc` cookie that lives 10 minutes.
-- Signing out deletes the Piecewise session only. There is no provider-side logout and no refresh-token handling; sessions last `SESSION_DAYS`.
+- Flow state is kept in the `oidc_flows` table, tied to a `planifold_oidc` cookie that lives 10 minutes.
+- Signing out deletes the Planifold session only. There is no provider-side logout and no refresh-token handling; sessions last `SESSION_DAYS`.
 
 First run with SSO: `/setup` creates a local administrator and does not offer the SSO button. Either complete `/setup` (or use `BOOTSTRAP_ADMIN_*`) and connect SSO afterwards, or, with your email in `OIDC_ADMIN_EMAILS`, open `/api/auth/oidc/start` directly; the endpoint does not require setup to be finished.
 
@@ -251,12 +251,12 @@ An `http://` issuer is accepted (insecure requests are enabled for it) so you ca
 
 ## Single sign-on (SAML 2.0)
 
-Piecewise is a SAML 2.0 service provider through `@node-saml/node-saml`: HTTP-Redirect binding for the authentication request, HTTP-POST binding for the response, signed assertions required, response signature required by default, audience and issuer checked, and every response must answer a request Piecewise issued unless `SAML_ALLOW_IDP_INITIATED` is on. The configuration below is written for Okta; any SAML 2.0 identity provider that can send an email attribute works the same way.
+Planifold is a SAML 2.0 service provider through `@node-saml/node-saml`: HTTP-Redirect binding for the authentication request, HTTP-POST binding for the response, signed assertions required, response signature required by default, audience and issuer checked, and every response must answer a request Planifold issued unless `SAML_ALLOW_IDP_INITIATED` is on. The configuration below is written for Okta; any SAML 2.0 identity provider that can send an email attribute works the same way.
 
 ### Okta setup
 
 1. In Okta Admin, go to Applications → Create App Integration → SAML 2.0.
-2. General settings: any name, for example "Piecewise".
+2. General settings: any name, for example "Planifold".
 3. SAML settings:
 
    | Okta field | Value |
@@ -267,30 +267,31 @@ Piecewise is a SAML 2.0 service provider through `@node-saml/node-saml`: HTTP-Re
    | Name ID format | Unspecified or EmailAddress; Persistent also works |
    | Application username | Okta username (or Email) |
 
-   Attribute statements (name → value): `email` → `user.email`, `firstName` → `user.firstName`, `lastName` → `user.lastName`. Optionally a group attribute statement named `groups` with a filter that matches the groups you want Piecewise to see (for `SAML_ADMIN_GROUPS`). The names are configurable with `SAML_ATTR_*` if your organization already uses others.
+   Attribute statements (name → value): `email` → `user.email`, `firstName` → `user.firstName`, `lastName` → `user.lastName`. Optionally a group attribute statement named `groups` with a filter that matches the groups you want Planifold to see (for `SAML_ADMIN_GROUPS`). The names are configurable with `SAML_ATTR_*` if your organization already uses others.
 
 4. Finish, then open the app's Sign On tab and click "View SAML setup instructions" (or "More details"). Copy the three values into the environment:
 
    ```sh
-   BASE_URL=https://piecewise.example.com
+   BASE_URL=https://planifold.example.com
    SAML_IDP_SSO_URL=https://your-org.okta.com/app/…/sso/saml     # "Identity Provider Single Sign-On URL"
    SAML_IDP_ISSUER=http://www.okta.com/exk…                        # "Identity Provider Issuer"
-   SAML_IDP_CERT_FILE=/etc/piecewise/okta.pem                     # "X.509 Certificate", or inline as SAML_IDP_CERT
+   SAML_IDP_CERT_FILE=/etc/planifold/okta.pem                     # "X.509 Certificate", or inline as SAML_IDP_CERT
    SAML_ADMIN_EMAILS=you@example.com
    ```
 
-5. Assign people or groups to the app in Okta, restart Piecewise, and check Admin → Sign-in: it shows the ACS URL, entity id, and metadata URL to compare against Okta. The sign-in page now has a button labeled by `SAML_BUTTON_LABEL`; it links to `/api/auth/saml/start`. Service-provider metadata is served at `/api/auth/saml/metadata` for identity providers that can import it.
+5. Assign people or groups to the app in Okta, restart Planifold, and check Admin → Sign-in: it shows the ACS URL, entity id, and metadata URL to compare against Okta. The sign-in page now has a button labeled by `SAML_BUTTON_LABEL`; it links to `/api/auth/saml/start`. Service-provider metadata is served at `/api/auth/saml/metadata` for identity providers that can import it.
 
-Okta signs both the response and the assertion by default; keep it that way. If you enable assertion encryption in Okta, give Piecewise a key pair with `SAML_SP_PRIVATE_KEY_FILE` and `SAML_SP_CERT_FILE`, upload the certificate to Okta as the encryption certificate; the same pair also signs Piecewise's requests, which Okta accepts but does not require.
+Okta signs both the response and the assertion by default; keep it that way. If you enable assertion encryption in Okta, give Planifold a key pair with `SAML_SP_PRIVATE_KEY_FILE` and `SAML_SP_CERT_FILE`, upload the certificate to Okta as the encryption certificate; the same pair also signs Planifold's requests, which Okta accepts but does not require.
 
 ### How identities map to accounts
 
 - The email comes from the attribute named by `SAML_ATTR_EMAIL` (`email`), falling back to the NameID when it looks like an email address. Without one, sign-in fails with a message naming the attribute to add. The display name is `SAML_ATTR_NAME`, else first and last name joined, else the part of the email before `@`.
 - Identity is the NameID, stored on the account (`users.saml_name_id`). On the first sign-in of a NameID, the server looks for an account provisioned by SCIM whose external id equals the NameID (Okta can send `user.id` as both), then for an account with the same email (case-insensitive), and links it. An account already linked to a different NameID refuses the new one. Otherwise a new account is created: `app_admin` if the email is in `SAML_ADMIN_EMAILS` or a `groups` value is in `SAML_ADMIN_GROUPS`, else `SAML_DEFAULT_ROLE`.
 - Roles are decided when an account is created, and once more on the first SAML sign-in of an account that SCIM provisioned (upwards only, so that an administrator listed in `SAML_ADMIN_EMAILS` still becomes one when Okta created the account first). Later sign-ins never change roles; change them in Admin → Users. Group membership sent in assertions is not stored.
+- Linking clears any pending "must change password" flag. An account an administrator created with a temporary password would otherwise be stuck: the app would ask for a new password and `POST /api/auth/password` would refuse it, because the identity provider now owns the account.
 - A disabled account is refused at the callback.
-- Flow state is kept in two tables: `saml_requests` holds the ids of requests Piecewise issued (10 minutes), and `saml_flows` remembers where to send the person afterwards, keyed by the RelayState. No cookie is involved, because the identity provider posts the response from its own origin and a `SameSite=Lax` cookie would not travel with it.
-- Signing out deletes the Piecewise session only. There is no single logout.
+- Flow state is kept in two tables: `saml_requests` holds the ids of requests Planifold issued (10 minutes), and `saml_flows` remembers where to send the person afterwards, keyed by the RelayState. No cookie is involved, because the identity provider posts the response from its own origin and a `SameSite=Lax` cookie would not travel with it.
+- Signing out deletes the Planifold session only. There is no single logout.
 
 ### Getting the first administrator with SAML
 
@@ -298,7 +299,7 @@ Okta signs both the response and the assertion by default; keep it that way. If 
 
 ### IdP-initiated sign-in
 
-By default a response must answer a request Piecewise issued (`InResponseTo` is checked against `saml_requests`), so a sign-in has to start from the Piecewise sign-in page. Clicking the app in the Okta dashboard sends an unsolicited response, which is refused with "Sign-in must start from Piecewise". Set `SAML_ALLOW_IDP_INITIATED=true` to accept those; Okta's "Default RelayState" is then used as the landing path when it is a same-site path. Unsolicited responses are still checked for signature, issuer, audience, and validity window, but they can be replayed within that window by anyone who obtains one, which is why this is off by default.
+By default a response must answer a request Planifold issued (`InResponseTo` is checked against `saml_requests`), so a sign-in has to start from the Planifold sign-in page. Clicking the app in the Okta dashboard sends an unsolicited response, which is refused with "Sign-in must start from Planifold". Set `SAML_ALLOW_IDP_INITIATED=true` to accept those; Okta's "Default RelayState" is then used as the landing path when it is a same-site path. Unsolicited responses are still checked for signature, issuer, audience, and validity window, but they can be replayed within that window by anyone who obtains one, which is why this is off by default.
 
 ### Enforcing SAML
 
@@ -311,6 +312,7 @@ With this set, SAML is the only way in:
 - `AUTH_LOCAL` is treated as `false`, and `OIDC_*` and `AUTH_TRUSTED_*` are ignored. `/api/auth/login` and `/api/auth/setup` return 403; the sign-in page sends people straight to the identity provider, showing an error first if the previous attempt failed.
 - On start, every session that did not come through SAML is ended (sessions record how they were created in `sessions.via`), and such sessions are refused if they turn up later. People signed in with a password before the change have to sign in again through SAML.
 - Accounts keep their roles and plans; a password account is linked to its SAML identity by email on first sign-in.
+- Signing out returns to the sign-in page and stays there, rather than bouncing straight back to the identity provider. The provider usually still holds its own session, so the next sign-in can be a single click; ending that session is the provider's job, since there is no single logout.
 - The server refuses to start if SAML is not fully configured.
 
 Turn it on only after a SAML sign-in has worked with `SAML_ENFORCE` unset. To get back in if the identity provider breaks, unset `SAML_ENFORCE` and restart; password accounts (including `BOOTSTRAP_ADMIN_*`) work again immediately.
@@ -319,7 +321,7 @@ The SAML flow is covered by automated tests against a mock identity provider tha
 
 ## Provisioning (SCIM 2.0)
 
-Piecewise is a SCIM 2.0 service provider at `<BASE_URL>/api/scim/v2` (`server/src/scim/`). An identity provider can create people before they ever sign in, keep names and emails current, deactivate and reactivate them, delete them, and push groups. It is written against Okta's SCIM client and follows RFC 7643/7644 closely enough for other clients.
+Planifold is a SCIM 2.0 service provider at `<BASE_URL>/api/scim/v2` (`server/src/scim/`). An identity provider can create people before they ever sign in, keep names and emails current, deactivate and reactivate them, delete them, and push groups. It is written against Okta's SCIM client and follows RFC 7643/7644 closely enough for other clients.
 
 ### Okta setup
 
@@ -338,7 +340,7 @@ Piecewise is a SCIM 2.0 service provider at `<BASE_URL>/api/scim/v2` (`server/sr
    "Test Connector Configuration" calls `/Users?filter=…`, `/Users`, and, if group push is selected, `/Groups`.
 
 4. On Provisioning → To App, enable Create Users, Update User Attributes, and Deactivate Users. In the attribute mappings, keep `userName` mapped to the person's email (Okta's username is usually the email; if yours is not, map `userName` to `user.email`). `givenName`, `familyName`, `displayName`, and `email` are used; other attributes are accepted and ignored.
-5. Assign people to the app; Okta creates them in Piecewise at once. Push Groups sends group membership.
+5. Assign people to the app; Okta creates them in Planifold at once. Push Groups sends group membership.
 
 Okta reaches the SCIM endpoint from its own network, so `BASE_URL` must be reachable from the internet (or Okta's published IP ranges must be allowed through your firewall), over HTTPS.
 
@@ -377,7 +379,7 @@ Behavior, from `server/src/auth/plugin.ts`:
 
 - On every request without a valid session cookie, the server reads the email header. The value must contain `@`. An unknown email creates an account with `AUTH_TRUSTED_DEFAULT_ROLE` and `auth_source` `trusted-header`; a disabled account is ignored.
 - No session cookie is issued. The user is identified per request, so signing out is the proxy's job; the app's sign-out only clears a cookie that was never set.
-- If `AUTH_TRUSTED_PROXY_TOKEN` is set, headers are honored only when the request also carries `X-Piecewise-Proxy-Token` with exactly that value. Set the token, and add the header at the component that talks directly to Piecewise (for example a `proxy_set_header` in nginx or `header_up` in Caddy). Without the token, anyone who can reach port 3000 directly can claim any email. Regardless of the token, keep the port reachable only from the proxy.
+- If `AUTH_TRUSTED_PROXY_TOKEN` is set, headers are honored only when the request also carries `X-Planifold-Proxy-Token` with exactly that value. Set the token, and add the header at the component that talks directly to Planifold (for example a `proxy_set_header` in nginx or `header_up` in Caddy). Without the token, anyone who can reach port 3000 directly can claim any email. Regardless of the token, keep the port reachable only from the proxy.
 - Trusted-header accounts have no password; "reset password" in Admin → Users refuses them.
 
 Getting the first administrator: start with `AUTH_TRUSTED_DEFAULT_ROLE=app_admin`, sign in once, then change it back to `user` and restart. Or create a local administrator with `BOOTSTRAP_ADMIN_*` and promote users in Admin → Users.
@@ -388,10 +390,10 @@ Everything lives in `DATA_DIR`:
 
 | File | Contents |
 |---|---|
-| `piecewise.sqlite` (plus `-wal`, `-shm`) | Users (scrypt password hashes), sessions, plans, pieces, helper messages, provider settings with encrypted API keys, plugin settings, organization settings, audit log, in-flight OIDC and SAML flows, SCIM tokens (hashed) and groups. |
+| `planifold.sqlite` (plus `-wal`, `-shm`) | Users (scrypt password hashes), sessions, plans, pieces, helper messages, provider settings with encrypted API keys, plugin settings, organization settings, audit log, in-flight OIDC and SAML flows, SCIM tokens (hashed) and groups. |
 | `.app-secret` | Generated `APP_SECRET`, mode `0600`. Present only if `APP_SECRET` was not set on first start. |
 
-Backup: stop the service, copy the whole directory, start it again. If you copy while running, copy the `.sqlite`, `-wal`, and `-shm` files together, or take a consistent snapshot with the SQLite CLI from the host (`sqlite3 piecewise.sqlite ".backup 'piecewise-backup.sqlite'"`; the CLI is not in the image). For a named Podman volume, `podman volume inspect piecewise-data` prints the mount point.
+Backup: stop the service, copy the whole directory, start it again. If you copy while running, copy the `.sqlite`, `-wal`, and `-shm` files together, or take a consistent snapshot with the SQLite CLI from the host (`sqlite3 planifold.sqlite ".backup 'planifold-backup.sqlite'"`; the CLI is not in the image). For a named Podman volume, `podman volume inspect planifold-data` prints the mount point.
 
 Restore: stop the service, put the files back in `DATA_DIR`, and start. If you rely on the generated `.app-secret`, restore it with the database or stored API keys become unreadable.
 
@@ -402,7 +404,7 @@ Provider API keys are the only data encrypted with `APP_SECRET`. Passwords are s
 After a change, the stored keys cannot be decrypted:
 
 - Admin → AI shows the key hint `•••• (unreadable: APP_SECRET changed)`.
-- Helper calls fall back to rule-based guidance with the notice "The stored API key can't be decrypted. APP_SECRET probably changed; re-enter the key in Admin → AI."
+- Plani falls back to rule-based guidance with the notice "The stored API key can't be decrypted. APP_SECRET probably changed; re-enter the key in Admin → AI."
 
 The app never returns a stored key (only its last four characters), so have the keys at hand before rotating. Procedure:
 
@@ -431,19 +433,34 @@ The same breakage happens when you start setting `APP_SECRET` after running with
 
 Schema migrations run at start (`server/src/db/migrations.ts`, tracked in the `schema_migrations` table). They are forward-only; there is no downgrade. Back up `DATA_DIR` first.
 
-- Container: pull the new image and recreate the container (`podman pull ghcr.io/christag/piecewise:latest` then re-run, or `podman compose pull && podman compose up -d`).
-- Quadlet: `podman auto-update`, or pull and `systemctl --user restart piecewise`.
+- Container: pull the new image and recreate the container (`podman pull ghcr.io/christag/planifold:latest` then re-run, or `podman compose pull && podman compose up -d`).
+- Quadlet: `podman auto-update`, or pull and `systemctl --user restart planifold`.
 - Source: `git pull && npm ci && npm run build`, then restart the process.
 
 Built-in plugins ship inside the image and update with it. Plugins in `PLUGINS_DIR` are yours to update; reload them from Admin → Integrations without a restart. Plugin settings (enabled, owner, guidance, hidden objects and actions) are stored in the database and survive both.
+
+### Upgrading from Piecewise
+
+The project was renamed to Planifold, and the assistant is now called Plani. Your data comes across untouched: plans, accounts, roles, provider keys, and the audit log all live in the same database, and no migration rewrites them. What changes on the first start of a renamed build:
+
+| Was | Is now | What to do |
+|---|---|---|
+| `piecewise.sqlite` | `planifold.sqlite` | Nothing. An existing `piecewise.sqlite` keeps being used; only a fresh install creates the new name. Set `DB_PATH` to pin either. |
+| `piecewise_session`, `piecewise_oidc` cookies | `planifold_session`, `planifold_oidc` | Nothing. Everyone signs in once more. |
+| `X-Piecewise-Proxy-Token` | `X-Planifold-Proxy-Token` | Rename the header your proxy sends, if you use trusted-header sign-in. Until you do, the header is ignored and those people cannot sign in. |
+| `ghcr.io/christag/piecewise` | `ghcr.io/christag/planifold` | Point your pull, compose file, or Quadlet unit at the new image. The old package stops receiving builds. |
+| `piecewise-data` volume, `deploy/piecewise.container`, `~/.config/piecewise/` | the same names with `planifold` | Rename them, or keep yours and adjust the unit; nothing reads the directory name. |
+| SCIM tokens beginning `pcw_scim_` | new ones begin `pfd_scim_` | Nothing. Existing tokens keep working; only their displayed prefix looks older. |
+
+`APP_SECRET` is unaffected: the key that encrypts provider API keys is derived from a constant that deliberately did not change, so stored keys stay readable.
 
 ## Logs
 
 The server logs to stdout through pino. With `NODE_ENV=production` each line is JSON; in development it is pretty-printed. `LOG_LEVEL` controls verbosity.
 
 ```sh
-podman logs -f piecewise
-journalctl --user -u piecewise -f     # Quadlet
+podman logs -f planifold
+journalctl --user -u planifold -f     # Quadlet
 ```
 
 Lines worth knowing:
@@ -451,7 +468,7 @@ Lines worth knowing:
 - `loaded N plugins` and `plugin skipped` (with `dir` and `errors`) at start.
 - `created bootstrap administrator` when `BOOTSTRAP_ADMIN_*` takes effect; a warning if the password is too short.
 - `web build not found; only the API is served`.
-- `Piecewise is listening on http://0.0.0.0:3000`.
+- `Planifold is listening on http://0.0.0.0:3000`.
 - `helper model call failed; using rules` and `brief generation failed; using template` when the model provider errors.
 - `oidc callback failed` and `saml callback failed` with the error.
 - `SAML is enforced; ended sessions that did not come through SAML` at start when `SAML_ENFORCE` is on and there were such sessions.

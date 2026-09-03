@@ -1,4 +1,4 @@
-import type { Sentence as SentenceData, Token } from "@piecewise/shared";
+import type { Sentence as SentenceData, Token } from "@planifold/shared";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "../lib/planStore.js";
 import type { Piece } from "../lib/types.js";

@@ -71,7 +71,7 @@ export function AiAdmin() {
       <div className="spread">
         <div>
           <h1>AI</h1>
-          <p className="muted small">The model behind the helper. Keys are encrypted at rest and never shown again.</p>
+          <p className="muted small">The model behind Plani. Keys are encrypted at rest and never shown again.</p>
         </div>
         <button className="btn primary" onClick={() => setAdding(true)}>
           Add a provider
@@ -140,7 +140,7 @@ export function AiAdmin() {
         <div className="card">
           <div className="empty">
             <h3>No provider yet</h3>
-            <p className="small">The helper is running on rules alone. Add Claude or ChatGPT to get suggestions written for each plan.</p>
+            <p className="small">Plani is running on rules alone. Add Claude or ChatGPT to get suggestions written for each plan.</p>
           </div>
         </div>
       ) : (

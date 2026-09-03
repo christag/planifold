@@ -1,6 +1,6 @@
-# Piecewise — single image, no external services.
-# Build:  podman build -t piecewise .   (docker works the same)
-# Run:    podman run -p 3000:3000 -v piecewise-data:/data -e APP_SECRET=... piecewise
+# Planifold — single image, no external services.
+# Build:  podman build -t planifold .   (docker works the same)
+# Run:    podman run -p 3000:3000 -v planifold-data:/data -e APP_SECRET=... planifold
 
 FROM node:22-bookworm-slim AS build
 # better-sqlite3 ships prebuilt binaries; the toolchain is the fallback for platforms without one.
